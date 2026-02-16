@@ -1,0 +1,100 @@
+body{
+  font-size: 1.15rem;
+  color: rgb(3, 71, 3);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-weight:470 ;
+  background-color: rgb(223, 221, 221);
+}
+
+input,
+select,
+textarea,
+button {
+  font-size: inherit;
+  color: inherit;
+  padding: 0.3rem;
+  border-radius: 5px;
+  border: 2px solid rgba(23, 207, 38, 1);
+}
+
+.register-form label{
+  font-weight: 600;
+}
+
+button{
+  border: 1px solid rgba(23, 207, 38, 1);
+  border-top-left-radius: 20px;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 5px;
+  border-bottom-left-radius: 5px;
+  color: white;
+  background-color: rgba(23, 207, 38, 1);
+  width: 8rem;
+}
+
+.register-page{
+  border: 1px solid rgba(23, 207, 38, 1);
+  margin: 2rem;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  background-color: rgb(243, 241, 241);
+  margin-left: 10rem;
+  margin-right: 10rem;
+}
+
+.register-form{
+  display: flex;
+  flex-direction: column;
+  margin: 2rem;
+  border: 1px solid rgba(23, 207, 38, 1);
+  padding: 1rem;
+  background-color: white;
+  padding-left: 3rem;
+  border-top-left-radius: 100px;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 35px;
+  border-bottom-left-radius: 35px;
+}
+
+.register-form-btn{
+  display: flex;
+  justify-content: space-around;
+  padding-left: 3rem;
+  padding-right: 3rem;
+  margin-top: 1rem;
+}
+
+label{
+  margin: 1rem;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.register-form input{
+  margin-left: 1rem;
+}
+
+.checkbox-label span{
+  font-weight: 400;
+}
+
+.landing-page{
+  padding: 3rem;
+  border: 1px solid rgba(23, 207, 38, 1);
+  margin: 2rem;
+  background-color: white;
+  display: flex;
+  justify-content: space-around;
+}
+
+.landing-page button{
+  margin: 1rem;
+}
+
+.landing-page-img img{
+  width: 20rem;
+  height: 25rem;
+  border: none;
+}
