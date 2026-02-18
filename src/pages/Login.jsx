@@ -1,29 +1,127 @@
-import Button from "../components/Button";
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import ecoLoopLogo from "../assets/brand/ecoloop-logo.png";
 
+const IconEnvelope = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+    <polyline points="22,6 12,13 2,6" />
+  </svg>
+);
+const IconLock = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+  </svg>
+);
+const IconEye = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+const IconEyeOff = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+    <line x1="1" y1="1" x2="23" y2="23" />
+  </svg>
+);
 
 function Login() {
+  const [showPassword, setShowPassword] = useState(false);
+
   return (
-    <div className="register-page">
-        <h2>EcoLoop</h2>
-      <form className="register-form">  
-
-        <label>
-          Email:
-          <input type="email" name="email" placeholder="Enter your email" />
-        </label>
-
-        <label>
-          Password:
-          <input type="password" name="password" placeholder="Enter your password" />
-        </label>
-
-        <a>Forgot Password?</a>
-
-        <div className="register-form-btn">
-        <Button text="Log In" type="submit"/>
-        
+    <div className="register-page login-page">
+      <div className="register-page-left">
+        <Link to="/" className="register-logo">
+          <img src={ecoLoopLogo} alt="EcoLoop" />
+        </Link>
+        <div className="register-hero">
+          <h1 className="register-headline">Turn Waste into Opportunity</h1>
+          <p className="register-desc">
+            Connect, trade, and grow sustainably with verified eco-businesses. Join the circular economy today.
+          </p>
         </div>
-      </form>
+        <div className="login-cta-bar">
+          <div className="login-cta-avatars">
+            <span className="login-avatar" aria-hidden="true" />
+            <span className="login-avatar" aria-hidden="true" />
+            <span className="login-avatar" aria-hidden="true" />
+          </div>
+        </div>
+      </div>
+
+      <div className="register-page-right">
+        <div className="register-card login-card">
+          <h2 className="login-card-title">Welcome Back</h2>
+          <p className="register-card-subtitle">Sign in to your account</p>
+
+          <form className="login-form" onSubmit={(e) => e.preventDefault()}>
+            <label className="register-field">
+              <span className="register-field-label">Email Address</span>
+              <span className="register-input-wrap">
+                <span className="register-input-icon" aria-hidden="true"><IconEnvelope /></span>
+                <input type="email" name="email" placeholder="name@company.com" />
+              </span>
+            </label>
+
+            <div className="register-field">
+              <span className="register-field-label">Password</span>
+              <span className="register-input-wrap">
+                <span className="register-input-icon" aria-hidden="true"><IconLock /></span>
+                <input
+                  id="login-password"
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  className="register-password-toggle"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowPassword((p) => !p);
+                  }}
+                  title={showPassword ? "Hide password" : "Show password"}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <IconEyeOff /> : <IconEye />}
+                </button>
+              </span>
+            </div>
+
+            <div className="login-forgot-wrap">
+              <Link to="/forgot-password" className="login-forgot-link">Forgot Password?</Link>
+            </div>
+
+            <button type="submit" className="register-submit login-submit">Sign In</button>
+          </form>
+
+          <div className="login-divider">
+            <span className="login-divider-line" />
+            <span className="login-divider-text">OR</span>
+            <span className="login-divider-line" />
+          </div>
+
+          <button type="button" className="login-google-btn">
+            <span className="login-google-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+              </svg>
+            </span>
+            Sign in with Google
+          </button>
+
+          <p className="register-signin login-signup">
+            Don't have an account? <Link to="/register" className="register-signin-link">Sign Up</Link>
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
