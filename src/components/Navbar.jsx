@@ -8,9 +8,9 @@ function Navbar() {
         <img src={ecoLoopLogo} alt="EcoLoop" />
       </Link>
       <nav className="navbar-links">
-        <Link to="/">Home</Link>
-        <a href="#challenge">Solution</a>
-        <a href="#services">Marketplace</a>
+        <Link to="/" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>Home</Link>
+        <a href="#about">About</a>
+        <Link to="/marketplace">Marketplace</Link>
       </nav>
       <div className="navbar-actions">
         <Link to="/login" className="btn btn-outline">Sign in</Link>

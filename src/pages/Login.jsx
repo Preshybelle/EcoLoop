@@ -1,6 +1,8 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import bcrypt from "bcryptjs";
 import ecoLoopLogo from "../assets/brand/ecoloop-logo.png";
+import { getStoredUser } from "../utils/auth";
 
 const IconEnvelope = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -28,12 +30,51 @@ const IconEyeOff = () => (
 );
 
 function Login() {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    const emailTrim = email.trim();
+    const pass = password;
+    if (!emailTrim || !pass) {
+      setError("Please enter your email and password.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const user = getStoredUser(emailTrim);
+      if (!user) {
+        setError("No account found for this email.");
+        return;
+      }
+      const match = await bcrypt.compare(pass, user.passwordHash);
+      if (!match) {
+        setError("Invalid password.");
+        return;
+      }
+      if (user.fullName) localStorage.setItem("ecoloop_fullName", user.fullName);
+      if (user.userType === "buyer") {
+        navigate("/buyer/dashboard");
+      } else {
+        navigate("/seller/dashboard");
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
-    <div className="register-page login-page">
-      <div className="register-page-left">
-        <Link to="/" className="register-logo">
+    <div className="auth-page-container">
+      <div className="register-page login-page">
+        <div className="auth-card-container">
+          <div className="register-page-left">
+            <Link to="/" className="register-logo">
           <img src={ecoLoopLogo} alt="EcoLoop" />
         </Link>
         <div className="register-hero">
@@ -44,24 +85,38 @@ function Login() {
         </div>
         <div className="login-cta-bar">
           <div className="login-cta-avatars">
-            <span className="login-avatar" aria-hidden="true" />
-            <span className="login-avatar" aria-hidden="true" />
-            <span className="login-avatar" aria-hidden="true" />
+            <img src="https://randomuser.me/api/portraits/women/32.jpg" alt="" className="login-avatar" />
+            <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="" className="login-avatar" />
+            <img src="https://randomuser.me/api/portraits/women/65.jpg" alt="" className="login-avatar" />
           </div>
         </div>
-      </div>
+          </div>
+        </div>
 
-      <div className="register-page-right">
-        <div className="register-card login-card">
+        <div className="auth-card-container">
+          <div className="register-page-right">
+            <div className="register-card login-card">
           <h2 className="login-card-title">Welcome Back</h2>
           <p className="register-card-subtitle">Sign in to your account</p>
 
-          <form className="login-form" onSubmit={(e) => e.preventDefault()}>
+          <form className="login-form" onSubmit={handleSubmit} noValidate>
+            {error && (
+              <div className="register-form-errors login-form-error" role="alert">
+                {error}
+              </div>
+            )}
             <label className="register-field">
               <span className="register-field-label">Email Address</span>
               <span className="register-input-wrap">
                 <span className="register-input-icon" aria-hidden="true"><IconEnvelope /></span>
-                <input type="email" name="email" placeholder="name@company.com" />
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="name@company.com"
+                  value={email}
+                  onChange={(e) => { setEmail(e.target.value); setError(""); }}
+                  autoComplete="email"
+                />
               </span>
             </label>
 
@@ -75,6 +130,8 @@ function Login() {
                   name="password"
                   placeholder="••••••••"
                   autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => { setPassword(e.target.value); setError(""); }}
                 />
                 <button
                   type="button"
@@ -96,7 +153,9 @@ function Login() {
               <Link to="/forgot-password" className="login-forgot-link">Forgot Password?</Link>
             </div>
 
-            <button type="submit" className="register-submit login-submit">Sign In</button>
+            <button type="submit" className="register-submit login-submit" disabled={submitting}>
+              {submitting ? "Signing in…" : "Sign In"}
+            </button>
           </form>
 
           <div className="login-divider">
@@ -120,6 +179,8 @@ function Login() {
           <p className="register-signin login-signup">
             Don't have an account? <Link to="/register" className="register-signin-link">Sign Up</Link>
           </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

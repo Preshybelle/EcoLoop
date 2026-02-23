@@ -54,7 +54,6 @@ function ServicesSection() {
             <div className="service-card-body">
               <h3 className="service-card-title">{s.title}</h3>
               <p className="service-card-desc">{s.desc}</p>
-              <p className="service-card-link">Know More -&gt;</p>
             </div>
           </div>
         ))}
