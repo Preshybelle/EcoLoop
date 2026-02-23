@@ -1684,6 +1684,113 @@ button {
   }
 }
 
+/* Small phone (iPhone 11 Pro ~375px and similar) */
+@media (max-width: 400px) {
+  body {
+    overflow-x: hidden;
+  }
+
+  .navbar {
+    padding: 0.5rem 0.6rem;
+  }
+
+  .navbar-links {
+    gap: 0.6rem;
+  }
+
+  .navbar-links a {
+    font-size: 0.85rem;
+  }
+
+  .hero-content {
+    padding: 1.5rem 0.75rem 2rem;
+  }
+
+  .hero-title {
+    font-size: 1.4rem;
+  }
+
+  .section {
+    padding: 1.5rem 0.5rem;
+  }
+
+  .section-title {
+    font-size: 1.25rem;
+  }
+
+  .auth-page-container {
+    padding: 0.5rem;
+  }
+
+  .register-page .auth-card-container {
+    padding: 0.5rem;
+  }
+
+  .seller-main-wrap,
+  .account-settings-main,
+  .create-listing-content,
+  .inventory-content {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .producer-dashboard-layout .producer-sidebar,
+  .seller-sidebar,
+  .marketplace-sidebar {
+    padding: 0.5rem 0.6rem;
+  }
+
+  .producer-sidebar-nav,
+  .seller-sidebar-nav,
+  .marketplace-sidebar-nav {
+    gap: 0.25rem;
+  }
+
+  .producer-nav-item,
+  .seller-sidebar-nav .seller-nav-item,
+  .marketplace-nav-item {
+    padding: 0.55rem 0.6rem;
+    font-size: 0.875rem;
+  }
+
+  .seller-topbar,
+  .marketplace-topbar {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .account-settings-panel {
+    padding: 1rem 1.25rem;
+  }
+
+  .account-settings-section-title {
+    font-size: 1rem;
+  }
+
+  .create-listing-stepper {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .create-listing-step {
+    min-width: 0;
+  }
+
+  .marketplace-search-row .marketplace-search-input,
+  .inventory-search-input {
+    min-width: 0;
+  }
+
+  .buyer-search-wrap {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .messages-topbar {
+    padding: 0.75rem 1rem;
+  }
+}
+
 /* ========== Seller / Listings Management ========== */
 .seller-layout {
   display: flex;
