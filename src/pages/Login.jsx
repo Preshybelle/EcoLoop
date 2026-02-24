@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import bcrypt from "bcryptjs";
 import ecoLoopLogo from "../assets/brand/ecoloop-logo.png";
-import { getStoredUser } from "../utils/auth";
+import { getStoredUser, setAuthSession } from "../utils/auth";
+import { loginUser as loginUserApi } from "../services/authApi";
 
 const IconEnvelope = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -35,11 +36,13 @@ function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [errors, setErrors] = useState({ email: "", password: "" });
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setErrors({ email: "", password: "" });
     const emailTrim = email.trim();
     const pass = password;
     if (!emailTrim || !pass) {
@@ -48,6 +51,17 @@ function Login() {
     }
     setSubmitting(true);
     try {
+      const base = typeof import.meta !== "undefined" && import.meta.env?.VITE_SCAN_API_URL
+        ? String(import.meta.env.VITE_SCAN_API_URL).replace(/\/$/, "")
+        : "";
+      if (base) {
+        const data = await loginUserApi({ email: emailTrim, password: pass });
+        if (data.token) setAuthSession(data.token, data.user);
+        const role = data.user?.role === "buyer" ? "buyer" : "seller";
+        if (role === "buyer") navigate("/buyer/dashboard");
+        else navigate("/seller/dashboard");
+        return;
+      }
       const user = getStoredUser(emailTrim);
       if (!user) {
         setError("No account found for this email.");
@@ -63,6 +77,17 @@ function Login() {
         navigate("/buyer/dashboard");
       } else {
         navigate("/seller/dashboard");
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Login failed. Please try again.";
+      setError(message);
+      if (err.details && Array.isArray(err.details)) {
+        const next = { email: "", password: "" };
+        err.details.forEach((d) => {
+          if (d.field === "email") next.email = d.message || "";
+          else if (d.field === "password") next.password = d.message || "";
+        });
+        setErrors(next);
       }
     } finally {
       setSubmitting(false);
@@ -114,10 +139,13 @@ function Login() {
                   name="email"
                   placeholder="name@company.com"
                   value={email}
-                  onChange={(e) => { setEmail(e.target.value); setError(""); }}
+                  onChange={(e) => { setEmail(e.target.value); setError(""); setErrors((p) => ({ ...p, email: "" })); }}
                   autoComplete="email"
+                  aria-invalid={!!errors.email}
+                  aria-describedby={errors.email ? "login-email-error" : undefined}
                 />
               </span>
+              {errors.email && <span id="login-email-error" className="register-field-error">{errors.email}</span>}
             </label>
 
             <div className="register-field">
@@ -131,7 +159,9 @@ function Login() {
                   placeholder="••••••••"
                   autoComplete="current-password"
                   value={password}
-                  onChange={(e) => { setPassword(e.target.value); setError(""); }}
+                  onChange={(e) => { setPassword(e.target.value); setError(""); setErrors((p) => ({ ...p, password: "" })); }}
+                  aria-invalid={!!errors.password}
+                  aria-describedby={errors.password ? "login-password-error" : undefined}
                 />
                 <button
                   type="button"
@@ -147,6 +177,7 @@ function Login() {
                   {showPassword ? <IconEyeOff /> : <IconEye />}
                 </button>
               </span>
+              {errors.password && <span id="login-password-error" className="register-field-error">{errors.password}</span>}
             </div>
 
             <div className="login-forgot-wrap">

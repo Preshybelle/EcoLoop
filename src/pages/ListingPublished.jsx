@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import ecoLoopLogo from "../assets/brand/ecoloop-logo.png";
 
 const IconGrid = () => (
@@ -52,6 +52,8 @@ function getFullNameAndInitials() {
 
 export default function ListingPublished() {
   const { fullName, initials } = getFullNameAndInitials();
+  const { state } = useLocation();
+  const listingId = state?.listingId ?? state?.listing?.id ?? state?.id ?? "12345";
   return (
     <div className="seller-layout confirmation-layout">
       <aside className="seller-sidebar seller-sidebar-confirm">
@@ -113,7 +115,7 @@ export default function ListingPublished() {
             <p className="confirmation-desc">
               Your listing is now live and visible to buyers. You can track views and offers from your dashboard.
             </p>
-            <div className="confirmation-id-tag">Listing ID: #12345</div>
+            <div className="confirmation-id-tag">Listing ID: #{listingId}</div>
             <div className="confirmation-actions">
               <Link to="/listings" className="btn btn-primary confirmation-btn-primary">
                 Go to Listings

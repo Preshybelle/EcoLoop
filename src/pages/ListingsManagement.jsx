@@ -1,5 +1,7 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import ecoLoopLogo from "../assets/brand/ecoloop-logo.png";
+import { getListings } from "../services/listingsApi";
 
 const IconGrid = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
@@ -47,14 +49,64 @@ const IconDiamond = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2.7 10.3a2.41 2.41 0 0 0 0 3.41l7.59 7.59a2.41 2.41 0 0 0 3.41 0l7.59-7.59a2.41 2.41 0 0 0 0-3.41l-7.59-7.59a2.41 2.41 0 0 0-3.41 0Z"/></svg>
 );
 
-const LISTINGS = [
+const LISTINGS_FALLBACK = [
   { id: 1, name: "PET Flakes (Clear)", sku: "PL-PET-001", category: "Plastics", quantity: "12.5", unit: "Tons", price: "420", priceUnit: "/ Ton", status: "PUBLISHED", created: "Oct 24, 2023", thumb: "https://picsum.photos/seed/pet1/80/80" },
   { id: 2, name: "Copper Wire Scrap", sku: "MT-CU-012", category: "Metals", quantity: "8.2", unit: "Tons", price: "6,200", priceUnit: "/ Ton", status: "SOLD", created: "Oct 20, 2023", thumb: "https://picsum.photos/seed/metal1/80/80" },
   { id: 3, name: "Mixed Paper (OCC)", sku: "PP-OCC-089", category: "Paper", quantity: "25.0", unit: "Tons", price: "180", priceUnit: "/ Ton", status: "PUBLISHED", created: "Oct 18, 2023", thumb: "https://picsum.photos/seed/paper1/80/80" },
   { id: 4, name: "ABS Plastic Regrind", sku: "PL-ABS-044", category: "Plastics", quantity: "5.0", unit: "Tons", price: "890", priceUnit: "/ Ton", status: "DRAFT", created: "Oct 15, 2023", thumb: "https://picsum.photos/seed/abs1/80/80" },
 ];
 
+function normalizeListing(row) {
+  return {
+    id: row.id ?? row._id,
+    name: row.name ?? row.title ?? "—",
+    sku: row.sku ?? row.skuCode ?? `#${row.id ?? ""}`,
+    category: row.category ?? row.materialType ?? "—",
+    quantity: String(row.quantity ?? "—"),
+    unit: row.unit ?? "Tons",
+    price: String(row.price ?? row.pricePerUnit ?? "—").replace(/\B(?=(\d{3})+(?!\d))/g, ","),
+    priceUnit: row.priceUnit ?? "/ Ton",
+    status: (row.status ?? "PUBLISHED").toUpperCase(),
+    created: row.created ?? (row.createdAt ? new Date(row.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"),
+    thumb: row.thumb ?? row.imageUrl ?? row.image ?? "https://picsum.photos/seed/listing/80/80",
+  };
+}
+
 export default function ListingsManagement() {
+  const [listings, setListings] = useState(LISTINGS_FALLBACK);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    const base = typeof import.meta !== "undefined" && import.meta.env?.VITE_SCAN_API_URL
+      ? String(import.meta.env.VITE_SCAN_API_URL).replace(/\/$/, "")
+      : "";
+    const token = typeof window !== "undefined" && window.localStorage && window.localStorage.getItem("ecoloop_token");
+    if (!base || !token) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError("");
+    getListings()
+      .then((data) => {
+        if (!cancelled && Array.isArray(data)) {
+          setListings(data.length ? data.map(normalizeListing) : LISTINGS_FALLBACK);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load listings");
+          setListings(LISTINGS_FALLBACK);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
   return (
     <div className="seller-layout">
       <aside className="seller-sidebar">
@@ -101,6 +153,11 @@ export default function ListingsManagement() {
         </header>
 
         <main className="seller-content">
+          {error && (
+            <div className="listings-error-banner" role="alert">
+              {error}
+            </div>
+          )}
           <div className="listings-header">
             <div>
               <h1 className="listings-title">Manage Your Materials</h1>
@@ -141,7 +198,12 @@ export default function ListingsManagement() {
                 </tr>
               </thead>
               <tbody>
-                {LISTINGS.map((row) => (
+                {loading ? (
+                  <tr>
+                    <td colSpan={7} className="listings-loading-cell">Loading listings…</td>
+                  </tr>
+                ) : (
+                  listings.map((row) => (
                   <tr key={row.id}>
                     <td>
                       <div className="listings-table-item">
@@ -169,7 +231,8 @@ export default function ListingsManagement() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  ))
+                )}
               </tbody>
             </table>
           </div>

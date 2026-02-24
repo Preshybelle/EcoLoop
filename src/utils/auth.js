@@ -1,8 +1,38 @@
 /**
  * Client-side auth storage helpers.
- * Users are stored in localStorage keyed by normalized email (lowercase).
- * Passwords are stored as bcrypt hashes only (hashing is done in Register/Login).
+ * Backend auth: token and user from register/login API.
+ * Legacy: ecoloop_users for local-only (bcrypt) flow.
  */
+
+const TOKEN_KEY = "ecoloop_token";
+const USER_KEY = "ecoloop_user";
+
+/** Store auth after successful register or login (backend API). */
+export function setAuthSession(token, user) {
+  if (token) localStorage.setItem(TOKEN_KEY, token);
+  else localStorage.removeItem(TOKEN_KEY);
+  if (user) {
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    if (user.name) localStorage.setItem("ecoloop_fullName", user.name);
+  } else {
+    localStorage.removeItem(USER_KEY);
+  }
+}
+
+/** Get stored JWT token for Authorization header. */
+export function getAuthToken() {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+/** Get stored user object from API (name, email, role, id, etc.). */
+export function getAuthUser() {
+  try {
+    const raw = localStorage.getItem(USER_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
 
 const STORAGE_KEY = "ecoloop_users";
 

@@ -1,6 +1,8 @@
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import ecoLoopLogo from "../assets/brand/ecoloop-logo.png";
 import listingPlaceholder from "../assets/inventory/hdpe-plastic.png";
+import { createListing } from "../services/listingsApi";
 
 function getFullNameAndInitials() {
   const fullName = typeof window !== "undefined" ? (localStorage.getItem("ecoloop_fullName") || "Producer") : "Producer";
@@ -70,6 +72,36 @@ const STEPS = [
 
 export default function CreateListingReview() {
   const { fullName, initials } = getFullNameAndInitials();
+  const navigate = useNavigate();
+  const [publishing, setPublishing] = useState(false);
+  const [publishError, setPublishError] = useState("");
+
+  const handlePublish = async (e) => {
+    e.preventDefault();
+    setPublishError("");
+    setPublishing(true);
+    try {
+      const image = typeof sessionStorage !== "undefined" ? sessionStorage.getItem("ecoloop_create_listing_upload") : null;
+      const payload = {
+        title: "Grade A Plastic Scrap",
+        materialType: "Industrial Polymer",
+        quantity: 5,
+        unit: "tons",
+        price: 165000,
+        priceUnit: "per ton",
+        notes: "Material is already sorted and baled. Pick-up required between 8 AM and 4 PM. Loading assistance available on site with forklift. Please confirm vehicle size before dispatch.",
+        allowNegotiation: true,
+      };
+      if (image) payload.image = image;
+      const data = await createListing(payload);
+      const listingId = data.listing?.id ?? data.id ?? data.listingId;
+      navigate("/seller/listing-published", { state: { listingId, listing: data.listing ?? data } });
+    } catch (err) {
+      setPublishError(err instanceof Error ? err.message : "Failed to publish listing");
+    } finally {
+      setPublishing(false);
+    }
+  };
   return (
     <div className="seller-layout seller-layout-create seller-layout-review">
       <aside className="seller-sidebar seller-sidebar-green seller-sidebar-with-plan">
@@ -129,6 +161,11 @@ export default function CreateListingReview() {
           <h1 className="create-listing-title">Review & Publish Listing</h1>
           <p className="create-listing-subtitle">Confirm all details before publishing to the marketplace.</p>
 
+          {publishError && (
+            <div className="register-form-errors review-publish-error" role="alert">
+              {publishError}
+            </div>
+          )}
           <div className="review-progress-row">
             <span className="review-step-label">STEP 5 OF 5: REVIEW</span>
             <span className="review-percent">100% Complete</span>
@@ -225,9 +262,14 @@ export default function CreateListingReview() {
             <Link to="/seller/create-listing/price" className="material-details-back-btn">
               <IconHelp /> Back to Pricing
             </Link>
-            <Link to="/seller/listing-published" className="btn btn-primary material-details-continue-btn review-publish-btn">
-              <IconArrowUp /> Publish Listing
-            </Link>
+            <button
+              type="button"
+              className="btn btn-primary material-details-continue-btn review-publish-btn"
+              onClick={handlePublish}
+              disabled={publishing}
+            >
+              <IconArrowUp /> {publishing ? "Publishing…" : "Publish Listing"}
+            </button>
           </div>
 
           <p className="review-disclaimer">

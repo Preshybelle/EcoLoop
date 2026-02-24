@@ -18,7 +18,7 @@ function LandingPageCard1() {
           resources while reducing environmental impact.
         </p>
         <div className="hero-cta">
-          <a href="#challenge" className="btn btn-primary">Learn more</a>
+          <Link to="/register" className="btn btn-primary">Get Started</Link>
           <Link to="/register" className="btn btn-outline-light">Sign up</Link>
         </div>
         <div className="hero-stats">

@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import bcrypt from "bcryptjs";
 import ecoLoopLogo from "../assets/brand/ecoloop-logo.png";
-import { storeUser } from "../utils/auth";
+import { registerUser } from "../services/authApi";
+import { setAuthSession } from "../utils/auth";
 
 const IconPerson = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -29,11 +29,11 @@ const IconLockOpen = () => (
   </svg>
 );
 
-const initialErrors = { fullName: "", email: "", password: "", confirmPassword: "", agreeTerms: "" };
+const initialErrors = { fullName: "", email: "", password: "", confirmPassword: "", agreeTerms: "", userType: "" };
 
 function Register() {
   const navigate = useNavigate();
-  const [userType, setUserType] = useState("seller");
+  const [userType, setUserType] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [fullName, setFullName] = useState("");
@@ -43,12 +43,14 @@ function Register() {
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [errors, setErrors] = useState(initialErrors);
   const [submitting, setSubmitting] = useState(false);
+  const [apiError, setApiError] = useState("");
 
   const validate = () => {
     const next = { ...initialErrors };
     if (!fullName.trim()) next.fullName = "Full name is required.";
     if (!email.trim()) next.email = "Email address is required.";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) next.email = "Please enter a valid email address.";
+    if (!userType) next.userType = "Please select Buyer or Seller/Producer.";
     if (!password) next.password = "Password is required.";
     else if (password.length < 6) next.password = "Password must be at least 6 characters.";
     if (!confirmPassword) next.confirmPassword = "Please confirm your password.";
@@ -60,18 +62,43 @@ function Register() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setApiError("");
     if (!validate()) return;
     setSubmitting(true);
     try {
       const name = fullName.trim();
-      const emailNorm = email.trim().toLowerCase();
-      const passwordHash = await bcrypt.hash(password, 10);
-      storeUser(emailNorm, { passwordHash, fullName: name, userType });
-      if (name) localStorage.setItem("ecoloop_fullName", name);
-      if (userType === "buyer") {
+      const type = userType === "buyer" ? "buyer" : "seller";
+      const username = name.toLowerCase().replace(/\s+/g, "");
+      const data = await registerUser({
+        name,
+        email: email.trim(),
+        password,
+        confirmPassword,
+        role: type,
+        username: username || email.trim().toLowerCase().split("@")[0],
+        termsAccepted: agreeTerms,
+      });
+      setAuthSession(data.token, data.user);
+      if (type === "buyer") {
         navigate("/buyer/dashboard");
       } else {
         navigate("/seller/dashboard");
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Registration failed. Please try again.";
+      setApiError(message);
+      if (err.details && Array.isArray(err.details)) {
+        const next = { ...initialErrors };
+        err.details.forEach((d) => {
+          const field = d.field;
+          const msg = d.message || "";
+          if (field === "name") next.fullName = msg;
+          else if (field === "email") next.email = msg;
+          else if (field === "password") next.password = msg;
+          else if (field === "confirmPassword") next.confirmPassword = msg;
+          else if (field === "role") next.userType = msg;
+        });
+        setErrors((prev) => ({ ...prev, ...next }));
       }
     } finally {
       setSubmitting(false);
@@ -105,9 +132,9 @@ function Register() {
           <p className="register-card-subtitle">Join EcoLoop today</p>
 
           <form className="register-form" onSubmit={handleSubmit} noValidate>
-            {Object.values(errors).some(Boolean) && (
+            {(Object.values(errors).some(Boolean) || apiError) && (
               <div className="register-form-errors" role="alert">
-                Please fill in all required fields and agree to the Terms and Conditions.
+                {apiError || "Please fill in all required fields and agree to the Terms and Conditions."}
               </div>
             )}
             <label className="register-field">
@@ -119,7 +146,7 @@ function Register() {
                   name="fullName"
                   placeholder="John Doe"
                   value={fullName}
-                  onChange={(e) => { setFullName(e.target.value); setErrors((err) => ({ ...err, fullName: "" })); }}
+                  onChange={(e) => { setFullName(e.target.value); setErrors((err) => ({ ...err, fullName: "" })); setApiError(""); }}
                   aria-invalid={!!errors.fullName}
                   aria-describedby={errors.fullName ? "register-fullName-error" : undefined}
                 />
@@ -150,18 +177,19 @@ function Register() {
                 <button
                   type="button"
                   className={`register-type-btn ${userType === "buyer" ? "register-type-btn-active" : ""}`}
-                  onClick={() => setUserType("buyer")}
+                  onClick={() => { setUserType("buyer"); setErrors((err) => ({ ...err, userType: "" })); }}
                 >
                   Buyer
                 </button>
                 <button
                   type="button"
                   className={`register-type-btn ${userType === "seller" ? "register-type-btn-active" : ""}`}
-                  onClick={() => setUserType("seller")}
+                  onClick={() => { setUserType("seller"); setErrors((err) => ({ ...err, userType: "" })); }}
                 >
                   Seller/Producer
                 </button>
               </div>
+              {errors.userType && <span className="register-field-error">{errors.userType}</span>}
             </div>
 
             <div className="register-field">

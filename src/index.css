@@ -1789,6 +1789,481 @@ button {
   .messages-topbar {
     padding: 0.75rem 1rem;
   }
+
+  /* Terms page */
+  .terms-header {
+    padding: 0.6rem 0.75rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .terms-header-nav {
+    order: 3;
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .terms-header-nav a {
+    font-size: 0.85rem;
+  }
+  .terms-hero {
+    padding: 1.25rem 0.75rem;
+  }
+  .terms-title {
+    font-size: 1.35rem;
+  }
+  .terms-body {
+    flex-direction: column;
+    padding: 0 0.75rem;
+  }
+  .terms-sidebar {
+    width: 100%;
+    padding: 0.75rem 0;
+  }
+  .terms-content {
+    padding: 1rem 0 2rem;
+  }
+  .terms-section {
+    margin-bottom: 1.25rem;
+  }
+  .terms-section-heading {
+    font-size: 1.05rem;
+  }
+  .terms-footer-main {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+    padding: 1.25rem 0.75rem;
+  }
+  .terms-footer-bottom {
+    padding: 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  /* Listings management */
+  .listings-header,
+  .listings-toolbar {
+    padding-left: 0;
+    padding-right: 0;
+  }
+  .listings-search-wrap {
+    min-width: 0;
+  }
+  .listings-table-wrap {
+    margin-left: -0.75rem;
+    margin-right: -0.75rem;
+    width: calc(100% + 1.5rem);
+  }
+
+  /* Create listing flow */
+  .material-details-content {
+    padding: 0;
+  }
+  .material-details-card {
+    padding: 1rem 1.25rem;
+  }
+  .material-details-quantity-row {
+    flex-direction: column;
+  }
+  .set-price-content {
+    padding: 0;
+  }
+  .set-price-card {
+    padding: 1rem 1.25rem;
+  }
+  .set-price-input-row {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .set-price-callouts {
+    grid-template-columns: 1fr;
+  }
+  .review-listing-card {
+    flex-direction: column;
+  }
+  .review-listing-image-wrap {
+    width: 100%;
+    max-width: none;
+  }
+  .review-listing-details {
+    min-width: 0;
+  }
+  .review-listing-actions {
+    flex-direction: column;
+  }
+  .review-listing-actions .btn {
+    width: 100%;
+  }
+
+  /* Listing published / confirmation */
+  .confirmation-topbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+  .confirmation-main {
+    padding: 1rem 0.75rem;
+  }
+  .confirmation-success-icon {
+    width: 64px;
+    height: 64px;
+  }
+  .confirmation-actions {
+    flex-direction: column;
+  }
+  .confirmation-actions .btn {
+    width: 100%;
+  }
+
+  /* AI Recognition / Scan */
+  .ai-recognition-columns {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .ai-recognition-topbar {
+    flex-wrap: wrap;
+    padding: 0.75rem;
+  }
+  .ai-recognition-stepper {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .ai-recognition-left,
+  .ai-recognition-right {
+    min-width: 0;
+  }
+  .ai-recognition-upload-zone {
+    padding: 1.25rem 0.75rem;
+  }
+
+  /* Messages */
+  .messages-panels {
+    flex-direction: column;
+  }
+  .messages-list-pane {
+    max-height: 45vh;
+  }
+  .messages-chat-pane {
+    min-height: 50vh;
+  }
+  .messages-compose {
+    padding: 0.5rem;
+  }
+
+  /* Buyer dashboard */
+  .buyer-main {
+    padding: 1rem 0.75rem 1.5rem;
+  }
+  .buyer-search-wrap {
+    max-width: none;
+  }
+  .buyer-stat-card {
+    padding: 1rem;
+  }
+  .buyer-stat-value {
+    font-size: 1.25rem;
+  }
+  .buyer-quick-actions {
+    gap: 0.75rem;
+  }
+  .buyer-recommended-grid {
+    grid-template-columns: 1fr;
+  }
+  .buyer-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-left: -0.75rem;
+    margin-right: -0.75rem;
+    width: calc(100% + 1.5rem);
+  }
+  .buyer-two-col {
+    grid-template-columns: 1fr;
+  }
+
+  /* Inventory */
+  .inventory-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .inventory-filters-btn {
+    width: 100%;
+  }
+  .inventory-tabs {
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+  .inventory-tab {
+    padding: 0.45rem 0.65rem;
+    font-size: 0.85rem;
+  }
+  .inventory-card-body {
+    padding: 0.75rem;
+  }
+
+  /* Marketplace */
+  .marketplace-search-row {
+    flex-direction: column;
+  }
+  .marketplace-filters {
+    flex-wrap: wrap;
+  }
+  .marketplace-card {
+    min-width: 0;
+  }
+  .marketplace-card-image-wrap {
+    min-height: 140px;
+  }
+  .marketplace-card-body {
+    padding: 0.75rem;
+  }
+  .marketplace-card-title {
+    font-size: 0.95rem;
+  }
+}
+
+/* ========== Terms Page (base styles) ========== */
+.terms-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--white);
+  overflow-x: hidden;
+}
+
+.terms-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.terms-header-logo img {
+  height: 28px;
+  width: auto;
+}
+
+.terms-header-nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.terms-header-nav a {
+  color: #374151;
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+
+.terms-header-nav a:hover {
+  color: var(--green-primary);
+}
+
+.terms-hero {
+  text-align: center;
+  padding: 2rem 1.5rem;
+}
+
+.terms-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--green-primary);
+}
+
+.terms-subtitle {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #6b7280;
+}
+
+.terms-body {
+  display: flex;
+  flex: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 0 1.5rem 2rem;
+}
+
+.terms-sidebar {
+  width: 200px;
+  flex-shrink: 0;
+  padding: 1.5rem 1rem 0 0;
+}
+
+.terms-sidebar-title {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.terms-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.terms-sidebar-link {
+  color: #6b7280;
+  text-decoration: none;
+  font-size: 0.875rem;
+  padding: 0.35rem 0;
+}
+
+.terms-sidebar-link:hover,
+.terms-sidebar-link-active {
+  color: var(--green-primary);
+  font-weight: 500;
+}
+
+.terms-sidebar-link-active {
+  border-left: 3px solid var(--green-primary);
+  padding-left: 0.75rem;
+  margin-left: -3px;
+}
+
+.terms-content {
+  flex: 1;
+  min-width: 0;
+  padding: 0 0 2rem 1rem;
+}
+
+.terms-section {
+  margin-bottom: 1.5rem;
+}
+
+.terms-section-heading {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--green-primary);
+  margin: 0 0 0.5rem;
+}
+
+.terms-section p {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #374151;
+}
+
+.terms-disclaimer-box {
+  background: #dcfce7;
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+.terms-acceptance {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.terms-checkbox-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.terms-checkbox-label {
+  font-size: 0.9rem;
+  color: #374151;
+}
+
+.terms-accept-btn {
+  display: inline-block;
+  padding: 0.65rem 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.terms-updated {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #9ca3af;
+}
+
+.terms-footer {
+  border-top: 1px solid #e5e7eb;
+  margin-top: auto;
+}
+
+.terms-footer-main {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 1fr;
+  gap: 2rem;
+  padding: 2rem 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.terms-footer-brand .terms-footer-logo img {
+  height: 26px;
+}
+
+.terms-footer-tagline {
+  margin: 0.5rem 0 0;
+  font-size: 0.875rem;
+  color: #6b7280;
+  max-width: 280px;
+}
+
+.terms-footer-heading {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.terms-footer-col a {
+  display: block;
+  font-size: 0.875rem;
+  color: #6b7280;
+  text-decoration: none;
+  margin-bottom: 0.35rem;
+}
+
+.terms-footer-col a:hover {
+  color: var(--green-primary);
+}
+
+.terms-footer-bottom {
+  text-align: center;
+  padding: 1rem 1.5rem;
+  font-size: 0.85rem;
+  color: #9ca3af;
+  border-top: 1px solid #f3f4f6;
+}
+
+@media (max-width: 768px) {
+  .terms-body {
+    flex-direction: column;
+  }
+  .terms-sidebar {
+    width: 100%;
+    padding: 0.5rem 0 1rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .terms-sidebar-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .terms-sidebar-link-active {
+    margin-left: 0;
+    padding-left: 0.75rem;
+  }
+  .terms-footer-main {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .terms-footer-main {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ========== Seller / Listings Management ========== */
