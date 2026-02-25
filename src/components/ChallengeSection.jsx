@@ -18,7 +18,7 @@ function ChallengeSection() {
   ];
 
   return (
-    <section id="challenge" className="section challenge-section">
+    <section id="about" className="section challenge-section">
       <h2 className="section-title">The Challenge Facing African Factories</h2>
       <p className="section-sub">
         African manufacturers face unique barriers when it comes to managing industrial waste responsibly and profitably.

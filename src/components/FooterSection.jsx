@@ -42,7 +42,7 @@ function FooterSection() {
         </div>
       </div>
       <div className="footer-bottom">
-        <span>Copyright © 2023 EcoLoop. All Rights Reserved.</span>
+        <span>Copyright © 2026 EcoLoop. All Rights Reserved.</span>
         <div className="footer-legal">
           <Link to="/privacy">Privacy Policy</Link>
           <span>|</span>

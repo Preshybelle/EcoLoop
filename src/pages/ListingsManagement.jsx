@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { Link, useLocation } from "react-router-dom";
 import ecoLoopLogo from "../assets/brand/ecoloop-logo.png";
 import { getListings } from "../services/listingsApi";
+import Avatar from "../components/Avatar";
 
 const IconGrid = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
@@ -57,25 +58,56 @@ const LISTINGS_FALLBACK = [
 ];
 
 function normalizeListing(row) {
+  const priceNum = Number(row.price);
+  const priceStr = Number.isFinite(priceNum) ? priceNum.toLocaleString() : (row.price ?? "—");
+  const created = row.createdAt
+    ? new Date(row.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : (row.created ?? "—");
+  const currency = row.currency || "";
+  const priceUnit = currency ? `/${currency}` : (row.unit ? ` / ${row.unit}` : " / Ton");
   return {
     id: row.id ?? row._id,
-    name: row.name ?? row.title ?? "—",
-    sku: row.sku ?? row.skuCode ?? `#${row.id ?? ""}`,
-    category: row.category ?? row.materialType ?? "—",
-    quantity: String(row.quantity ?? "—"),
+    name: row.title ?? row.name ?? "—",
+    sku: row.sku ?? row.skuCode ?? (row.id ? `#${String(row.id).slice(0, 8)}` : "—"),
+    category: row.materialType ?? row.category ?? "—",
+    quantity: String(row.quantity ?? row.totalWeight ?? "—"),
     unit: row.unit ?? "Tons",
-    price: String(row.price ?? row.pricePerUnit ?? "—").replace(/\B(?=(\d{3})+(?!\d))/g, ","),
-    priceUnit: row.priceUnit ?? "/ Ton",
-    status: (row.status ?? "PUBLISHED").toUpperCase(),
-    created: row.created ?? (row.createdAt ? new Date(row.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"),
-    thumb: row.thumb ?? row.imageUrl ?? row.image ?? "https://picsum.photos/seed/listing/80/80",
+    price: priceStr,
+    priceUnit,
+    status: (row.status ?? "ACTIVE").toUpperCase(),
+    created,
+    thumb: row.imageUrl ?? row.image ?? row.thumb ?? "https://picsum.photos/seed/listing/80/80",
   };
 }
 
+function filterListings(list, query) {
+  const q = (query || "").trim().toLowerCase();
+  if (!q) return list;
+  return list.filter(
+    (row) =>
+      (row.name && row.name.toLowerCase().includes(q)) ||
+      (row.sku && row.sku.toLowerCase().includes(q)) ||
+      (row.category && row.category.toLowerCase().includes(q)) ||
+      (row.quantity && String(row.quantity).toLowerCase().includes(q)) ||
+      (row.status && row.status.toLowerCase().includes(q))
+  );
+}
+
 export default function ListingsManagement() {
+  const location = useLocation();
+  const highlightId = location.state?.highlightListingId;
   const [listings, setListings] = useState(LISTINGS_FALLBACK);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const filteredListings = filterListings(listings, searchQuery);
+  const highlightedRowRef = useRef(null);
+
+  useEffect(() => {
+    if (!highlightId || loading || !highlightedRowRef.current) return;
+    highlightedRowRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [highlightId, loading]);
 
   useEffect(() => {
     let cancelled = false;
@@ -90,15 +122,17 @@ export default function ListingsManagement() {
     setLoading(true);
     setError("");
     getListings()
-      .then((data) => {
-        if (!cancelled && Array.isArray(data)) {
-          setListings(data.length ? data.map(normalizeListing) : LISTINGS_FALLBACK);
-        }
+      .then((res) => {
+        if (cancelled) return;
+        const list = res.listings && Array.isArray(res.listings) ? res.listings : [];
+        setListings(list.length ? list.map(normalizeListing) : LISTINGS_FALLBACK);
+        setTotalCount(typeof res.count === "number" ? res.count : list.length);
       })
       .catch((err) => {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Failed to load listings");
           setListings(LISTINGS_FALLBACK);
+          setTotalCount(0);
         }
       })
       .finally(() => {
@@ -148,7 +182,7 @@ export default function ListingsManagement() {
               <span className="seller-topbar-company-name">Industrial Recycle Co.</span>
               <span className="seller-topbar-badge">Premium Partner</span>
             </div>
-            <div className="seller-topbar-avatar" aria-hidden="true" />
+            <Avatar variant="seller-topbar" />
           </div>
         </header>
 
@@ -171,7 +205,14 @@ export default function ListingsManagement() {
           <div className="listings-toolbar">
             <div className="listings-search-wrap">
               <IconSearch />
-              <input type="search" placeholder="Search materials by name or SKU..." className="listings-search-input" />
+              <input
+                type="search"
+                placeholder="Search materials by name or SKU..."
+                className="listings-search-input"
+                aria-label="Search materials by name or SKU"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
             <select className="listings-select" aria-label="Category">
               <option>All Categories</option>
@@ -202,9 +243,18 @@ export default function ListingsManagement() {
                   <tr>
                     <td colSpan={7} className="listings-loading-cell">Loading listings…</td>
                   </tr>
+                ) : filteredListings.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="listings-loading-cell">No listings match your search.</td>
+                  </tr>
                 ) : (
-                  listings.map((row) => (
-                  <tr key={row.id}>
+                  filteredListings.map((row) => (
+                  <tr
+                    key={row.id}
+                    ref={String(row.id) === String(highlightId) ? highlightedRowRef : null}
+                    data-listing-id={row.id}
+                    className={String(row.id) === String(highlightId) ? "listings-table-row-highlight" : undefined}
+                  >
                     <td>
                       <div className="listings-table-item">
                         <img src={row.thumb} alt="" className="listings-table-thumb" />
@@ -238,7 +288,7 @@ export default function ListingsManagement() {
           </div>
 
           <div className="listings-pagination">
-            <p className="listings-pagination-summary">Showing 1 to 4 of 24 listings</p>
+            <p className="listings-pagination-summary">Showing 1 to {filteredListings.length} of {totalCount || listings.length} listings</p>
             <div className="listings-pagination-controls">
               <button type="button" className="listings-page-btn" aria-label="Previous">&lt;</button>
               <button type="button" className="listings-page-btn listings-page-btn-active">1</button>

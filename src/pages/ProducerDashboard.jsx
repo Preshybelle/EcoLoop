@@ -1,6 +1,10 @@
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ecoLoopLogo from "../assets/brand/ecoloop-logo.png";
+import { getListings } from "../services/listingsApi";
+import { getProducerLevel } from "../utils/producerLevel";
+import { getDisplayName } from "../utils/userDisplay";
+import Avatar from "../components/Avatar";
 
 const IconGrid9 = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="5" height="5" rx="0.5"/><rect x="10" y="3" width="5" height="5" rx="0.5"/><rect x="17" y="3" width="4" height="5" rx="0.5"/><rect x="3" y="10" width="5" height="5" rx="0.5"/><rect x="10" y="10" width="5" height="5" rx="0.5"/><rect x="17" y="10" width="4" height="5" rx="0.5"/><rect x="3" y="17" width="5" height="4" rx="0.5"/><rect x="10" y="17" width="5" height="4" rx="0.5"/><rect x="17" y="17" width="4" height="4" rx="0.5"/></svg>
@@ -26,6 +30,9 @@ const IconGear = () => (
 const IconBell = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
 );
+const IconMessage = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+);
 const IconSearch = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
 );
@@ -47,27 +54,124 @@ const IconEye = () => (
 const IconBarChart = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
 );
-const IconEllipsisV = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
-);
-
-const RECENT_LISTINGS = [
-  { material: "Industrial Polyethylene (HDPE)", quantity: "1,200 kg", price: "$3,400.00", status: "ACTIVE" },
-  { material: "Scrap Aluminum Mix", quantity: "500 kg", price: "$850.00", status: "PENDING" },
-  { material: "Recycled Cardboard Bales", quantity: "2.4 Tons", price: "$1,200.00", status: "SOLD" },
-  { material: "Mixed Glass Cullet", quantity: "800 kg", price: "$420.00", status: "ACTIVE" },
+const RECENT_LISTINGS_FALLBACK = [
+  { id: 1, material: "Industrial Polyethylene (HDPE)", quantity: "1,200 kg", quantityNum: 1.2, price: "₦5,100,000", priceNum: 5100000, status: "ACTIVE" },
+  { id: 2, material: "Scrap Aluminum Mix", quantity: "500 kg", quantityNum: 0.5, price: "₦1,275,000", priceNum: 1275000, status: "PENDING" },
+  { id: 3, material: "Recycled Cardboard Bales", quantity: "2.4 Tons", quantityNum: 2.4, price: "₦1,800,000", priceNum: 1800000, status: "SOLD" },
+  { id: 4, material: "Mixed Glass Cullet", quantity: "800 kg", quantityNum: 0.8, price: "₦630,000", priceNum: 630000, status: "ACTIVE" },
 ];
 
-const PULSE_BARS = [35, 45, 40, 55, 65, 75, 90];
+const PULSE_BARS_DEFAULT = [35, 45, 40, 55, 65, 75, 90];
+
+/** Derive bar heights (%) from listing tonnage – each bar = one listing's share of total, up to 7 bars. */
+function getPulseBarsFromListings(rows) {
+  if (!rows.length) return PULSE_BARS_DEFAULT;
+  const total = rows.reduce((sum, r) => sum + (r.quantityNum ?? 0), 0);
+  if (total <= 0) return PULSE_BARS_DEFAULT;
+  const shares = rows.slice(0, 7).map((r) => ((r.quantityNum ?? 0) / total) * 100);
+  while (shares.length < 7) shares.push(0);
+  return shares.slice(0, 7);
+}
+
+const USD_TO_NGN = 1500;
+
+function toDashboardRow(apiRow) {
+  const title = apiRow.title ?? apiRow.name ?? "—";
+  const quantity = apiRow.quantity ?? apiRow.totalWeight ?? 0;
+  const unit = apiRow.unit ?? "Tons";
+  const quantityStr = typeof quantity === "number" ? `${Number(quantity).toLocaleString()} ${unit}` : `${quantity} ${unit}`;
+  let quantityNum = typeof quantity === "number" ? quantity : parseFloat(String(quantity).replace(/[^0-9.]/g, "")) || 0;
+  if (String(unit).toLowerCase().includes("kg") && quantityNum >= 1000) quantityNum /= 1000;
+  const priceNum = Number(apiRow.price) ?? 0;
+  const currency = (apiRow.currency || "").toUpperCase();
+  const inNaira = currency === "NGN" || currency === "NAIRA" ? priceNum : priceNum * USD_TO_NGN;
+  const priceStr = "₦" + (inNaira >= 1e6 ? (inNaira / 1e6).toFixed(1) + "M" : inNaira.toLocaleString("en-NG", { maximumFractionDigits: 0 }));
+  const status = (apiRow.status ?? "ACTIVE").toUpperCase();
+  return {
+    material: title,
+    quantity: quantityStr,
+    quantityNum,
+    price: priceStr,
+    priceNum: inNaira,
+    status,
+  };
+}
+
+/** Rough kg CO2 equivalent saved per ton of material recycled (industry estimate). */
+const CO2_KG_PER_TON = 500;
+
+function computeMetrics(rows) {
+  const active = rows.filter((r) => r.status === "ACTIVE" || r.status === "PUBLISHED").length;
+  const pending = rows.filter((r) => r.status === "PENDING" || r.status === "DRAFT").length;
+  const totalTons = rows.reduce((sum, r) => sum + (r.quantityNum ?? 0), 0);
+  const totalRevenueNaira = rows.reduce((sum, r) => sum + (r.priceNum ?? 0), 0);
+  const co2SavedKg = totalTons * CO2_KG_PER_TON;
+  return { active, pending, totalTons, totalRevenueNaira, co2SavedKg };
+}
+
+function filterRecentListings(list, query, statusFilter) {
+  let out = list;
+  const q = (query || "").trim().toLowerCase();
+  if (q) {
+    out = out.filter(
+      (row) =>
+        (row.material && row.material.toLowerCase().includes(q)) ||
+        (row.quantity && row.quantity.toLowerCase().includes(q)) ||
+        (row.price && row.price.toLowerCase().includes(q)) ||
+        (row.status && row.status.toLowerCase().includes(q))
+    );
+  }
+  if (statusFilter) {
+    const s = statusFilter.toUpperCase();
+    out = out.filter((row) => {
+      const r = (row.status || "").toUpperCase();
+      if (s === "ACTIVE") return r === "ACTIVE" || r === "PUBLISHED";
+      if (s === "PENDING") return r === "PENDING" || r === "DRAFT";
+      return r === s;
+    });
+  }
+  return out;
+}
 
 export default function ProducerDashboard() {
-  const [newMessagesCount] = useState(3); // Replace with real data (e.g. from API) when available
-  const fullName = typeof window !== "undefined" ? (localStorage.getItem("ecoloop_fullName") || "Producer") : "Producer";
-  const initials = (() => {
-    const parts = fullName.trim().split(/\s+/).filter(Boolean);
-    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-    return (fullName.trim()[0] || "P").toUpperCase();
-  })();
+  const [newMessagesCount] = useState(3);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [metricFilter, setMetricFilter] = useState(null);
+  const [dashboardListings, setDashboardListings] = useState(RECENT_LISTINGS_FALLBACK);
+  const [metrics, setMetrics] = useState(() => computeMetrics(RECENT_LISTINGS_FALLBACK));
+  const [metricsLoading, setMetricsLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const base = typeof import.meta !== "undefined" && import.meta.env?.VITE_SCAN_API_URL ? String(import.meta.env.VITE_SCAN_API_URL).replace(/\/$/, "") : "";
+    const token = typeof window !== "undefined" && window.localStorage && window.localStorage.getItem("ecoloop_token");
+    if (!base || !token) {
+      setMetricsLoading(false);
+      return;
+    }
+    setMetricsLoading(true);
+    getListings()
+      .then((res) => {
+        if (cancelled) return;
+        const list = res.listings && Array.isArray(res.listings) ? res.listings : [];
+        const rows = list.length ? list.map(toDashboardRow) : RECENT_LISTINGS_FALLBACK;
+        setDashboardListings(rows);
+        setMetrics(computeMetrics(rows));
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setDashboardListings(RECENT_LISTINGS_FALLBACK);
+          setMetrics(computeMetrics(RECENT_LISTINGS_FALLBACK));
+        }
+      })
+      .finally(() => { if (!cancelled) setMetricsLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const recentFiltered = filterRecentListings(dashboardListings, searchQuery, metricFilter);
+  const recentSlice = recentFiltered.slice(0, 5);
+  const fullName = getDisplayName();
+
 
   return (
     <div className="seller-layout producer-dashboard-layout">
@@ -88,8 +192,8 @@ export default function ProducerDashboard() {
           <Link to="/seller/transactions" className="producer-nav-item">
             <IconArrows /> <span>Transactions</span>
           </Link>
-          <Link to="/seller/confirm" className="producer-nav-item">
-            <IconCheckCircle /> <span>Confirm</span>
+          <Link to="/seller/messages" className="producer-nav-item">
+            <IconMessage /> <span>Messages</span>
           </Link>
           <Link to="/seller/account" className="producer-nav-item">
             <IconGear /> <span>Account Settings</span>
@@ -97,9 +201,14 @@ export default function ProducerDashboard() {
         </nav>
         <div className="producer-level">
           <div className="producer-level-label">PRODUCER LEVEL</div>
-          <div className="producer-level-tier">Tier 2: Gold</div>
+          <div className="producer-level-tier">
+            {metricsLoading ? "—" : getProducerLevel(metrics.totalRevenueNaira).tierLabel}
+          </div>
           <div className="producer-level-bar-wrap">
-            <div className="producer-level-bar" style={{ width: "85%" }} />
+            <div
+              className="producer-level-bar"
+              style={{ width: metricsLoading ? "0%" : `${getProducerLevel(metrics.totalRevenueNaira).progressPercent}%` }}
+            />
           </div>
         </div>
       </aside>
@@ -119,7 +228,7 @@ export default function ProducerDashboard() {
             <div className="seller-topbar-user">
               <span className="seller-topbar-user-name">{fullName}</span>
             </div>
-            <div className="seller-topbar-avatar seller-topbar-avatar-initials" aria-hidden="true">{initials}</div>
+            <Avatar variant="seller-topbar" />
           </div>
         </header>
 
@@ -129,34 +238,65 @@ export default function ProducerDashboard() {
 
           <div className="producer-search-wrap">
             <IconSearch />
-            <input type="search" className="producer-search-input" placeholder="Search listings, materials, or orders..." aria-label="Search" />
+            <input
+              type="search"
+              className="producer-search-input"
+              placeholder="Search listings, materials, or orders..."
+              aria-label="Search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
 
           <div className="producer-metrics">
-            <div className="producer-metric-card">
-              <span className="producer-metric-badge producer-metric-badge-green">+4.5%</span>
+            <button
+              type="button"
+              className={`producer-metric-card ${metricFilter === "ACTIVE" ? "producer-metric-card-active" : ""}`}
+              onClick={() => setMetricFilter(metricFilter === "ACTIVE" ? null : "ACTIVE")}
+              aria-pressed={metricFilter === "ACTIVE"}
+              aria-label="Filter by Active listings"
+            >
+              <span className="producer-metric-badge producer-metric-badge-green">Active</span>
               <div className="producer-metric-icon"><IconDocList /></div>
-              <div className="producer-metric-value">24</div>
+              <div className="producer-metric-value">{metricsLoading ? "—" : metrics.active}</div>
               <div className="producer-metric-desc">Active</div>
-            </div>
-            <div className="producer-metric-card">
-              <span className="producer-metric-badge producer-metric-badge-green">+12%</span>
+            </button>
+            <button
+              type="button"
+              className="producer-metric-card"
+              onClick={() => setMetricFilter(null)}
+              aria-label="Show all listings"
+            >
+              <span className="producer-metric-badge producer-metric-badge-green">Revenue</span>
               <div className="producer-metric-icon"><IconLeaf /></div>
-              <div className="producer-metric-value">$12,450.00</div>
+              <div className="producer-metric-value">
+                {metricsLoading ? "—" : "₦" + (metrics.totalRevenueNaira >= 1e6 ? (metrics.totalRevenueNaira / 1e6).toFixed(1) + "M" : metrics.totalRevenueNaira.toLocaleString("en-NG", { maximumFractionDigits: 0 }))}
+              </div>
               <div className="producer-metric-desc">&nbsp;</div>
-            </div>
-            <div className="producer-metric-card">
-              <span className="producer-metric-badge producer-metric-badge-gray">New</span>
+            </button>
+            <button
+              type="button"
+              className={`producer-metric-card ${metricFilter === "PENDING" ? "producer-metric-card-active" : ""}`}
+              onClick={() => setMetricFilter(metricFilter === "PENDING" ? null : "PENDING")}
+              aria-pressed={metricFilter === "PENDING"}
+              aria-label="Filter by Pending listings"
+            >
+              <span className="producer-metric-badge producer-metric-badge-gray">Pending</span>
               <div className="producer-metric-icon"><IconStarburst /></div>
-              <div className="producer-metric-value">08</div>
+              <div className="producer-metric-value">{metricsLoading ? "—" : metrics.pending}</div>
               <div className="producer-metric-desc">Pending</div>
-            </div>
-            <div className="producer-metric-card">
-              <span className="producer-metric-badge producer-metric-badge-green">+2.1t</span>
+            </button>
+            <button
+              type="button"
+              className="producer-metric-card"
+              onClick={() => setMetricFilter(null)}
+              aria-label="Total tons"
+            >
+              <span className="producer-metric-badge producer-metric-badge-green">Tons</span>
               <div className="producer-metric-icon"><IconLeaf /></div>
-              <div className="producer-metric-value">45.2 <span className="producer-metric-unit">Tons</span></div>
+              <div className="producer-metric-value">{metricsLoading ? "—" : metrics.totalTons.toFixed(1)} <span className="producer-metric-unit">Tons</span></div>
               <div className="producer-metric-desc">&nbsp;</div>
-            </div>
+            </button>
           </div>
 
           <div className="producer-main-grid">
@@ -187,22 +327,29 @@ export default function ProducerDashboard() {
                         <th>QUANTITY</th>
                         <th>PRICE</th>
                         <th>STATUS</th>
-                        <th>ACTIONS</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {RECENT_LISTINGS.map((row, i) => (
-                        <tr key={i}>
-                          <td>{row.material}</td>
-                          <td>{row.quantity}</td>
-                          <td>{row.price}</td>
-                          <td><span className={`producer-status producer-status-${row.status.toLowerCase()}`}>{row.status}</span></td>
-                          <td><button type="button" className="producer-table-action" aria-label="Actions"><IconEllipsisV /></button></td>
+                      {recentFiltered.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="producer-table-empty">No listings match your search.</td>
                         </tr>
-                      ))}
+                      ) : (
+                        recentSlice.map((row, i) => (
+                          <tr key={row.id || i}>
+                            <td>{row.material}</td>
+                            <td>{row.quantity}</td>
+                            <td>{row.price}</td>
+                            <td><span className={`producer-status producer-status-${(row.status || "").toLowerCase()}`}>{row.status}</span></td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
+                {recentFiltered.length > 5 && (
+                  <p className="producer-listings-more">Showing 5 of {recentFiltered.length}</p>
+                )}
               </section>
             </div>
 
@@ -212,11 +359,14 @@ export default function ProducerDashboard() {
                   <span className="producer-pulse-icon"><IconBarChart /></span>
                   <h3 className="producer-pulse-title">Sustainability Pulse</h3>
                 </div>
-                <div className="producer-pulse-label">CO2 SAVINGS</div>
-                <div className="producer-pulse-value">12.4 <span className="producer-pulse-unit">kg/mo</span></div>
-                <div className="producer-pulse-bars">
-                  {PULSE_BARS.map((w, i) => (
-                    <div key={i} className="producer-pulse-bar" style={{ height: `${w}%` }} />
+                <div className="producer-pulse-label">CO₂ SAVINGS (est.)</div>
+                <div className="producer-pulse-value">
+                  {metricsLoading ? "—" : (metrics.co2SavedKg >= 1000 ? (metrics.co2SavedKg / 1000).toFixed(1) + " t" : metrics.co2SavedKg.toFixed(1) + " kg")}
+                  <span className="producer-pulse-unit"> total</span>
+                </div>
+                <div className="producer-pulse-bars" aria-hidden="true">
+                  {(dashboardListings.length ? getPulseBarsFromListings(dashboardListings) : PULSE_BARS_DEFAULT).map((w, i) => (
+                    <div key={i} className="producer-pulse-bar" style={{ height: `${Math.max(w, 4)}%` }} title={`${w.toFixed(0)}%`} />
                   ))}
                 </div>
               </div>

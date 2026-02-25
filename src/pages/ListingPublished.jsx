@@ -73,9 +73,6 @@ export default function ListingPublished() {
           <Link to="/seller/transactions" className="seller-nav-item">
             <IconArrows /> <span>Transactions</span>
           </Link>
-          <Link to="/seller/confirm" className="seller-nav-item seller-nav-item-btn-active">
-            <IconCheckCircle /> <span>Comfirm</span>
-          </Link>
         </nav>
         <div className="seller-sidebar-footer confirmation-sidebar-user">
           <div className="confirmation-user-avatar confirmation-user-avatar-initials" aria-hidden="true">{initials}</div>

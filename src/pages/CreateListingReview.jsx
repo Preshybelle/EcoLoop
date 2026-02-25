@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import ecoLoopLogo from "../assets/brand/ecoloop-logo.png";
 import listingPlaceholder from "../assets/inventory/hdpe-plastic.png";
-import { createListing } from "../services/listingsApi";
+import { createListingManual, createListingAi } from "../services/listingsApi";
 
 function getFullNameAndInitials() {
   const fullName = typeof window !== "undefined" ? (localStorage.getItem("ecoloop_fullName") || "Producer") : "Producer";
@@ -82,18 +82,26 @@ export default function CreateListingReview() {
     setPublishing(true);
     try {
       const image = typeof sessionStorage !== "undefined" ? sessionStorage.getItem("ecoloop_create_listing_upload") : null;
-      const payload = {
-        title: "Grade A Plastic Scrap",
-        materialType: "Industrial Polymer",
-        quantity: 5,
-        unit: "tons",
-        price: 165000,
-        priceUnit: "per ton",
-        notes: "Material is already sorted and baled. Pick-up required between 8 AM and 4 PM. Loading assistance available on site with forklift. Please confirm vehicle size before dispatch.",
-        allowNegotiation: true,
-      };
-      if (image) payload.image = image;
-      const data = await createListing(payload);
+      const title = "Grade A Plastic Scrap";
+      const description = "Material is already sorted and baled. Pick-up required between 8 AM and 4 PM. Loading assistance available on site with forklift. Please confirm vehicle size before dispatch.";
+      const price = 165000;
+      const currency = "NGN";
+      const state = "lagos";
+
+      let data;
+      if (image && image.startsWith("data:")) {
+        data = await createListingAi({ image, title, description, price, currency, state });
+      } else {
+        data = await createListingManual({
+          title,
+          description,
+          materialType: "PLASTIC",
+          weight: 5,
+          price,
+          currency,
+          state,
+        });
+      }
       const listingId = data.listing?.id ?? data.id ?? data.listingId;
       navigate("/seller/listing-published", { state: { listingId, listing: data.listing ?? data } });
     } catch (err) {
@@ -120,9 +128,6 @@ export default function CreateListingReview() {
           </Link>
           <Link to="/seller/transactions" className="seller-nav-item">
             <IconArrows /> <span>Transactions</span>
-          </Link>
-          <Link to="/seller/confirm" className="seller-nav-item">
-            <IconCheckCircle /> <span>Confirm</span>
           </Link>
         </nav>
         <div className="seller-sidebar-plan">

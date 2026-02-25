@@ -99,9 +99,6 @@ export default function Inventory() {
           <Link to="/seller/transactions" className="producer-nav-item">
             <IconArrows /> <span>Transactions</span>
           </Link>
-          <Link to="/seller/confirm" className="producer-nav-item">
-            <IconCheckCircle /> <span>Confirm</span>
-          </Link>
           <Link to="/seller/account" className="producer-nav-item">
             <IconGear /> <span>Account Settings</span>
           </Link>

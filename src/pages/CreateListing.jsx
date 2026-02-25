@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import ecoLoopLogo from "../assets/brand/ecoloop-logo.png";
 
 const IconGrid = () => (
@@ -13,9 +13,6 @@ const IconBox = () => (
 );
 const IconBarChart = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
-);
-const IconCart = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
 );
 const IconGear = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -53,7 +50,10 @@ function getFullNameAndInitials() {
   return { fullName, initials };
 }
 
+const AI_SCAN_PATH = "/seller/create-listing/scan";
+
 export default function CreateListing() {
+  const navigate = useNavigate();
   const fileInputRef = useRef(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [fileName, setFileName] = useState(null);
@@ -122,9 +122,6 @@ export default function CreateListing() {
           <Link to="/listings" className="seller-nav-item">
             <IconBox /> <span>Inventory</span>
           </Link>
-          <Link to="/seller/orders" className="seller-nav-item">
-            <IconCart /> <span>Orders</span>
-          </Link>
         </nav>
         <div className="seller-sidebar-footer">
           <Link to="/seller/account" className="seller-nav-item">
@@ -155,7 +152,7 @@ export default function CreateListing() {
             {STEPS.map((step, i) => (
               <div key={step.num} className="create-listing-step">
                 {i === 1 ? (
-                  <Link to="/seller/create-listing/scan" className="create-listing-step-link">
+                  <Link to={AI_SCAN_PATH} className="create-listing-step-link">
                     <div className={`create-listing-step-circle ${i === 0 ? "create-listing-step-circle-active" : ""}`}>
                       {step.num}
                     </div>
@@ -219,7 +216,7 @@ export default function CreateListing() {
               ) : (
                 <>
                   <IconCamera />
-                  <p className="create-listing-upload-text">Upload image of material or scan using camera</p>
+                  <p className="create-listing-upload-text">Upload image of material</p>
                   <p className="create-listing-upload-hint">Supports JPG, PNG, PDF up to 10MB</p>
                 </>
               )}
@@ -243,10 +240,13 @@ export default function CreateListing() {
           </div>
 
           <div className="create-listing-actions">
-            <Link to="/seller/create-listing/material-details" className="create-listing-save-draft">Save Draft</Link>
-            <Link to="/seller/create-listing/scan" className="btn btn-primary create-listing-dashboard-btn">
-              Continue to Scan <IconArrowRight />
-            </Link>
+            <button
+              type="button"
+              className="btn btn-primary create-listing-dashboard-btn"
+              onClick={() => navigate(AI_SCAN_PATH)}
+            >
+              Continue to AI Scan <IconArrowRight />
+            </button>
           </div>
         </main>
       </div>

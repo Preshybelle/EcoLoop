@@ -1,6 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import ecoLoopLogo from "../assets/brand/ecoloop-logo.png";
+import { getListings } from "../services/listingsApi";
+import { getProducerLevelFromListings } from "../utils/producerLevel";
+import { getFullNameAndInitials } from "../utils/userDisplay";
+import Avatar from "../components/Avatar";
 
 const IconGrid9 = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="5" height="5" rx="0.5"/><rect x="10" y="3" width="5" height="5" rx="0.5"/><rect x="17" y="3" width="4" height="5" rx="0.5"/><rect x="3" y="10" width="5" height="5" rx="0.5"/><rect x="10" y="10" width="5" height="5" rx="0.5"/><rect x="17" y="10" width="4" height="5" rx="0.5"/><rect x="3" y="17" width="5" height="4" rx="0.5"/><rect x="10" y="17" width="5" height="4" rx="0.5"/><rect x="17" y="17" width="4" height="4" rx="0.5"/></svg>
@@ -45,21 +49,14 @@ const IconChevronDown = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
 );
 
-function getFullNameAndInitials() {
-  const fullName = typeof window !== "undefined" ? (localStorage.getItem("ecoloop_fullName") || "Producer") : "Producer";
-  const parts = fullName.trim().split(/\s+/).filter(Boolean);
-  const initials = parts.length >= 2
-    ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-    : (fullName.trim()[0] || "P").toUpperCase();
-  return { fullName, initials };
-}
-
 const ACCOUNT_SUB_NAV = [
   { id: "profile", label: "Profile", icon: IconPerson, active: true },
   { id: "business", label: "Business Info", icon: IconBuilding, active: false },
   { id: "notifications", label: "Notifications", icon: IconBell, active: false },
   { id: "privacy", label: "Privacy & Security", icon: IconLock, active: false },
 ];
+
+const DEFAULT_LEVEL = { tierLabel: "Tier 1: Bronze", progressPercent: 0 };
 
 export default function AccountSettings() {
   const { fullName, initials } = getFullNameAndInitials();
@@ -73,6 +70,22 @@ export default function AccountSettings() {
   const [language, setLanguage] = useState("English");
   const [timezone, setTimezone] = useState("UTC+1 (WAT)");
   const [currency, setCurrency] = useState("NGN");
+  const [producerLevel, setProducerLevel] = useState(DEFAULT_LEVEL);
+
+  useEffect(() => {
+    let cancelled = false;
+    const base = typeof import.meta !== "undefined" && import.meta.env?.VITE_SCAN_API_URL ? String(import.meta.env.VITE_SCAN_API_URL).replace(/\/$/, "") : "";
+    const token = typeof window !== "undefined" && window.localStorage?.getItem("ecoloop_token");
+    if (!base || !token) return;
+    getListings()
+      .then((res) => {
+        if (cancelled) return;
+        const list = res.listings && Array.isArray(res.listings) ? res.listings : [];
+        setProducerLevel(getProducerLevelFromListings(list));
+      })
+      .catch(() => { if (!cancelled) setProducerLevel(DEFAULT_LEVEL); });
+    return () => { cancelled = true; };
+  }, []);
 
   const handleSave = (e) => {
     e.preventDefault();
@@ -98,18 +111,15 @@ export default function AccountSettings() {
           <Link to="/seller/transactions" className="producer-nav-item">
             <IconArrows /> <span>Transactions</span>
           </Link>
-          <Link to="/seller/confirm" className="producer-nav-item">
-            <IconCheckCircle /> <span>Confirm</span>
-          </Link>
           <Link to="/seller/account" className="producer-nav-item producer-nav-item-active">
             <IconGear /> <span>Account Settings</span>
           </Link>
         </nav>
         <div className="producer-level">
           <div className="producer-level-label">PRODUCER LEVEL</div>
-          <div className="producer-level-tier">Tier 2: Gold</div>
+          <div className="producer-level-tier">{producerLevel.tierLabel}</div>
           <div className="producer-level-bar-wrap">
-            <div className="producer-level-bar" style={{ width: "85%" }} />
+            <div className="producer-level-bar" style={{ width: `${producerLevel.progressPercent}%` }} />
           </div>
         </div>
       </aside>
@@ -125,7 +135,7 @@ export default function AccountSettings() {
               <span className="seller-topbar-user-name">{fullName}</span>
               <span className="seller-topbar-user-role">Waste Producer</span>
             </div>
-            <div className="seller-topbar-avatar seller-topbar-avatar-initials" aria-hidden="true">{initials}</div>
+            <Avatar variant="seller-topbar" />
           </div>
         </header>
 
@@ -154,9 +164,7 @@ export default function AccountSettings() {
                   <h2 className="account-settings-section-title">Personal Information</h2>
                   <div className="account-settings-profile-row">
                     <div className="account-settings-avatar-wrap">
-                      <div className="account-settings-avatar account-settings-avatar-initials" aria-hidden="true">
-                        {initials}
-                      </div>
+                      <Avatar variant="account-settings" />
                       <span className="account-settings-avatar-camera" aria-hidden="true">
                         <IconCameraSmall />
                       </span>

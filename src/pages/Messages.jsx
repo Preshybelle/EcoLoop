@@ -1,5 +1,8 @@
 import { Link, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
 import ecoLoopLogo from "../assets/brand/ecoloop-logo.png";
+import { getListings } from "../services/listingsApi";
+import { getProducerLevelFromListings } from "../utils/producerLevel";
 
 const IconGrid = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
@@ -100,10 +103,29 @@ function getFullNameAndInitials() {
   return { fullName, initials };
 }
 
+const DEFAULT_LEVEL = { tierLabel: "Tier 1: Bronze", progressPercent: 0 };
+
 export default function Messages() {
   const { pathname } = useLocation();
   const isProducer = pathname.includes("/seller/messages");
   const { fullName, initials } = getFullNameAndInitials();
+  const [producerLevel, setProducerLevel] = useState(DEFAULT_LEVEL);
+
+  useEffect(() => {
+    if (!isProducer) return;
+    let cancelled = false;
+    const base = typeof import.meta !== "undefined" && import.meta.env?.VITE_SCAN_API_URL ? String(import.meta.env.VITE_SCAN_API_URL).replace(/\/$/, "") : "";
+    const token = typeof window !== "undefined" && window.localStorage?.getItem("ecoloop_token");
+    if (!base || !token) return;
+    getListings()
+      .then((res) => {
+        if (cancelled) return;
+        const list = res.listings && Array.isArray(res.listings) ? res.listings : [];
+        setProducerLevel(getProducerLevelFromListings(list));
+      })
+      .catch(() => { if (!cancelled) setProducerLevel(DEFAULT_LEVEL); });
+    return () => { cancelled = true; };
+  }, [isProducer]);
 
   return (
     <div className="messages-layout">
@@ -125,9 +147,6 @@ export default function Messages() {
               </Link>
               <Link to="/seller/transactions" className="producer-nav-item">
                 <IconArrows /> <span>Transactions</span>
-              </Link>
-              <Link to="/seller/confirm" className="producer-nav-item">
-                <IconCheckCircle /> <span>Confirm</span>
               </Link>
               <Link to="/seller/account" className="producer-nav-item">
                 <IconGear /> <span>Account Settings</span>
@@ -156,9 +175,9 @@ export default function Messages() {
         {isProducer && (
           <div className="producer-level">
             <div className="producer-level-label">PRODUCER LEVEL</div>
-            <div className="producer-level-tier">Tier 2: Gold</div>
+            <div className="producer-level-tier">{producerLevel.tierLabel}</div>
             <div className="producer-level-bar-wrap">
-              <div className="producer-level-bar" style={{ width: "85%" }} />
+              <div className="producer-level-bar" style={{ width: `${producerLevel.progressPercent}%` }} />
             </div>
           </div>
         )}

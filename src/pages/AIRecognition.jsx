@@ -68,17 +68,60 @@ export default function AIRecognition() {
     if (typeof window === "undefined") return null;
     return sessionStorage.getItem(UPLOAD_STORAGE_KEY);
   });
+  const [scanLoading, setScanLoading] = useState(false);
+  const [scanError, setScanError] = useState(null);
+  const [scanResult, setScanResult] = useState(null);
+  const [imageToScan, setImageToScan] = useState(null);
 
   useEffect(() => {
     if (isCreateListingFlow && typeof window !== "undefined") {
-      setUploadedImageUrl(sessionStorage.getItem(UPLOAD_STORAGE_KEY));
+      const url = sessionStorage.getItem(UPLOAD_STORAGE_KEY);
+      setUploadedImageUrl(url);
     }
   }, [isCreateListingFlow, pathname]);
+
+  const runScan = useCallback(async (imageDataUrl) => {
+    if (!imageDataUrl || typeof imageDataUrl !== "string") return;
+    setScanLoading(true);
+    setScanError(null);
+    setScanResult(null);
+    try {
+      const result = await scanMaterialImage(imageDataUrl);
+      setScanResult(result);
+    } catch (err) {
+      setScanError(err instanceof Error ? err.message : "Scan failed");
+    } finally {
+      setScanLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const imageUrl = isCreateListingFlow ? uploadedImageUrl : (hasUpload ? previewUrl : null);
+    setImageToScan(imageUrl || null);
+    if (imageUrl && typeof imageUrl === "string" && imageUrl.startsWith("data:")) {
+      runScan(imageUrl);
+    }
+  }, [isCreateListingFlow, uploadedImageUrl, hasUpload, previewUrl, runScan]);
+
+  const retryScan = useCallback(() => {
+    if (imageToScan) runScan(imageToScan);
+  }, [imageToScan, runScan]);
 
   const handleZoneClick = () => fileInputRef.current?.click();
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
-    if (file) setHasUpload(true);
+    if (file) {
+      setHasUpload(true);
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === "string") {
+          setUploadedImageUrl(reader.result);
+          setImageToScan(reader.result);
+          runScan(reader.result);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
   };
   const handleRemove = () => setHasUpload(false);
 
@@ -100,9 +143,6 @@ export default function AIRecognition() {
           </Link>
           <Link to="/seller/transactions" className="marketplace-nav-item">
             <IconArrows /> <span>Transactions</span>
-          </Link>
-          <Link to="/seller/confirm" className="marketplace-nav-item">
-            <IconCheckCircle /> <span>Comfirm</span>
           </Link>
         </nav>
         <div className="ai-scan-storage">
@@ -331,6 +371,9 @@ export default function AIRecognition() {
                 <div className="material-details-actions" style={{ marginTop: "1rem" }}>
                   <Link to="/seller/create-listing" className="material-details-back-btn">
                     ← Back
+                  </Link>
+                  <Link to="/seller/create-listing/price" className="btn btn-secondary ai-recognition-proceed-btn">
+                    Proceed with AI result
                   </Link>
                   <Link to="/seller/create-listing/material-details" className="btn btn-primary material-details-continue-btn">
                     Continue to details

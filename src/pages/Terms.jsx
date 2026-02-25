@@ -157,7 +157,7 @@ export default function Terms() {
             <Link to="/register" className="btn btn-primary terms-accept-btn">
               Sign Up & Accept
             </Link>
-            <p className="terms-updated">Last updated: October 24, 2023</p>
+            <p className="terms-updated">Last updated: October 24, 2025</p>
           </div>
         </main>
       </div>
@@ -195,7 +195,7 @@ export default function Terms() {
           </div>
         </div>
         <div className="terms-footer-bottom">
-          <p>© 2023 EcoLoop Inc. All rights reserved. Built for a sustainable future.</p>
+          <p>© 2026 EcoLoop Inc. All rights reserved. Built for a sustainable future.</p>
         </div>
       </footer>
     </div>

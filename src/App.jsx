@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import LandingPage from "./pages/LandingPage";
 import Terms from "./pages/Terms";
@@ -42,6 +42,7 @@ function App() {
         <Route path="/seller/create-listing/material-details" element={<CreateListingMaterialDetails />} />
         <Route path="/seller/create-listing/scan" element={<AIRecognition />} />
         <Route path="/seller/create-listing" element={<CreateListing />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );
