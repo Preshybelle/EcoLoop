@@ -19,6 +19,15 @@ export function setAuthSession(token, user) {
   }
 }
 
+/** Clear auth session (logout). Removes token and user from storage. */
+export function clearAuthSession() {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
+  if (typeof localStorage !== "undefined" && localStorage.getItem("ecoloop_fullName")) {
+    localStorage.removeItem("ecoloop_fullName");
+  }
+}
+
 /** Get stored JWT token for Authorization header. */
 export function getAuthToken() {
   return localStorage.getItem(TOKEN_KEY);
@@ -32,6 +41,24 @@ export function getAuthUser() {
   } catch {
     return null;
   }
+}
+
+/**
+ * Update stored user profile (name, email). Merges into existing ecoloop_user and updates ecoloop_fullName.
+ * Use after user edits profile in Account Settings (client-side only; no API call).
+ * @param {{ name?: string, email?: string }} updates
+ */
+export function updateStoredUserProfile(updates) {
+  if (typeof localStorage === "undefined") return;
+  const user = getAuthUser();
+  if (!user) return;
+  const next = { ...user };
+  if (updates.name !== undefined) {
+    next.name = String(updates.name).trim() || next.name;
+    if (next.name) localStorage.setItem("ecoloop_fullName", next.name);
+  }
+  if (updates.email !== undefined) next.email = String(updates.email).trim() || next.email;
+  localStorage.setItem(USER_KEY, JSON.stringify(next));
 }
 
 const STORAGE_KEY = "ecoloop_users";

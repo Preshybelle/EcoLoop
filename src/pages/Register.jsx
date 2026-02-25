@@ -31,6 +31,38 @@ const IconLockOpen = () => (
 
 const initialErrors = { fullName: "", email: "", password: "", confirmPassword: "", agreeTerms: "", userType: "" };
 
+/** Map raw API/backend messages to user-friendly UI messages */
+function getUserFriendlyMessage(rawMessage, field) {
+  const msg = (rawMessage || "").toLowerCase();
+  // Field-specific mappings
+  if (field === "email" || msg.includes("email")) {
+    if (msg.includes("already") || msg.includes("exists") || msg.includes("taken")) return "This email is already registered. Please sign in or use a different email.";
+    if (msg.includes("invalid") || msg.includes("valid")) return "Please enter a valid email address.";
+  }
+  if (field === "name" || msg.includes("name")) {
+    if (msg.includes("required")) return "Full name is required.";
+    if (msg.includes("length") || msg.includes("short")) return "Please enter your full name.";
+  }
+  if (field === "password" || msg.includes("password")) {
+    if (msg.includes("match") || msg.includes("confirm")) return "Passwords do not match.";
+    if (msg.includes("length") || msg.includes("6") || msg.includes("minimum")) return "Password must be at least 6 characters.";
+    if (msg.includes("uppercase") || msg.includes("capital")) return "Password must include at least one capital letter.";
+    if (msg.includes("lowercase") || msg.includes("lower")) return "Password must include at least one lowercase letter.";
+    if (msg.includes("special") || msg.includes("symbol") || msg.includes("character")) return "Password must include at least one special character (e.g. ! @ # $).";
+    if (msg.includes("required")) return "Password is required.";
+  }
+  if (field === "confirmPassword") return "Passwords do not match. Please confirm your password.";
+  if (field === "role" || msg.includes("role")) return "Please select whether you are a Buyer or Seller/Producer.";
+  if (msg.includes("terms")) return "You must agree to the Terms and Conditions.";
+  // Generic API/status mappings
+  if (msg.includes("network") || msg.includes("fetch")) return "Unable to connect. Please check your internet connection and try again.";
+  if (msg.includes("409") || msg.includes("conflict")) return "This email is already registered. Please sign in or use a different email.";
+  if (msg.includes("400") || msg.includes("bad request")) return "Please check your details and try again.";
+  if (msg.includes("500") || msg.includes("server")) return "Something went wrong on our end. Please try again in a moment.";
+  if (msg.includes("403") || msg.includes("forbidden")) return "Registration is not allowed. Please contact support if this continues.";
+  return "Something went wrong. Please check your details and try again.";
+}
+
 function Register() {
   const navigate = useNavigate();
   const [userType, setUserType] = useState("");
@@ -53,6 +85,9 @@ function Register() {
     if (!userType) next.userType = "Please select Buyer or Seller/Producer.";
     if (!password) next.password = "Password is required.";
     else if (password.length < 6) next.password = "Password must be at least 6 characters.";
+    else if (!/[A-Z]/.test(password)) next.password = "Password must include at least one capital letter.";
+    else if (!/[a-z]/.test(password)) next.password = "Password must include at least one lowercase letter.";
+    else if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) next.password = "Password must include at least one special character (e.g. ! @ # $).";
     if (!confirmPassword) next.confirmPassword = "Please confirm your password.";
     else if (password !== confirmPassword) next.confirmPassword = "Passwords do not match.";
     if (!agreeTerms) next.agreeTerms = "You must agree to the Terms and Conditions.";
@@ -74,7 +109,7 @@ function Register() {
         email: email.trim(),
         password,
         confirmPassword,
-        role: type,
+        userType: type,
         username: username || email.trim().toLowerCase().split("@")[0],
         termsAccepted: agreeTerms,
       });
@@ -85,18 +120,18 @@ function Register() {
         navigate("/seller/dashboard");
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Registration failed. Please try again.";
-      setApiError(message);
+      const rawMessage = err instanceof Error ? err.message : "Registration failed.";
+      setApiError(getUserFriendlyMessage(rawMessage));
       if (err.details && Array.isArray(err.details)) {
         const next = { ...initialErrors };
         err.details.forEach((d) => {
           const field = d.field;
-          const msg = d.message || "";
-          if (field === "name") next.fullName = msg;
-          else if (field === "email") next.email = msg;
-          else if (field === "password") next.password = msg;
-          else if (field === "confirmPassword") next.confirmPassword = msg;
-          else if (field === "role") next.userType = msg;
+          const friendlyMsg = getUserFriendlyMessage(d.message || "", field);
+          if (field === "name") next.fullName = friendlyMsg;
+          else if (field === "email") next.email = friendlyMsg;
+          else if (field === "password") next.password = friendlyMsg;
+          else if (field === "confirmPassword") next.confirmPassword = friendlyMsg;
+          else if (field === "role") next.userType = friendlyMsg;
         });
         setErrors((prev) => ({ ...prev, ...next }));
       }
@@ -134,7 +169,7 @@ function Register() {
           <form className="register-form" onSubmit={handleSubmit} noValidate>
             {(Object.values(errors).some(Boolean) || apiError) && (
               <div className="register-form-errors" role="alert">
-                {apiError || "Please fill in all required fields and agree to the Terms and Conditions."}
+                {apiError || "Please correct the errors below and try again."}
               </div>
             )}
             <label className="register-field">
@@ -194,6 +229,9 @@ function Register() {
 
             <div className="register-field">
               <span className="register-field-label">Password</span>
+              <p className="register-password-hint" aria-live="polite">
+                Must include: a capital letter, a lowercase letter, and a special character (e.g. ! @ # $).
+              </p>
               <span className="register-input-wrap">
                 <button
                   type="button"

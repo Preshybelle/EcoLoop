@@ -1,8 +1,10 @@
 import { Link, useLocation } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import ecoLoopLogo from "../assets/brand/ecoloop-logo.png";
+import AvatarMenu from "../components/AvatarMenu";
 import { getListings } from "../services/listingsApi";
 import { getProducerLevelFromListings } from "../utils/producerLevel";
+import { getConversationsForProducer } from "../utils/contactMessages";
 
 const IconGrid = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
@@ -105,11 +107,37 @@ function getFullNameAndInitials() {
 
 const DEFAULT_LEVEL = { tierLabel: "Tier 1: Bronze", progressPercent: 0 };
 
+function formatMessageTime(iso) {
+  try {
+    const d = new Date(iso);
+    const now = new Date();
+    const diff = now - d;
+    if (diff < 60000) return "Just now";
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+    if (d.toDateString() === now.toDateString()) return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    if (diff < 86400000) return "Yesterday";
+    return d.toLocaleDateString([], { month: "short", day: "numeric" });
+  } catch {
+    return "";
+  }
+}
+
 export default function Messages() {
   const { pathname } = useLocation();
   const isProducer = pathname.includes("/seller/messages");
   const { fullName, initials } = getFullNameAndInitials();
   const [producerLevel, setProducerLevel] = useState(DEFAULT_LEVEL);
+  const [selectedConvId, setSelectedConvId] = useState(null);
+
+  const producerConversations = useMemo(() => {
+    if (!isProducer || !fullName) return [];
+    return getConversationsForProducer(fullName);
+  }, [isProducer, fullName]);
+
+  const selectedConv = useMemo(() => {
+    if (!selectedConvId) return null;
+    return producerConversations.find((c) => c.id === selectedConvId) || null;
+  }, [producerConversations, selectedConvId]);
 
   useEffect(() => {
     if (!isProducer) return;
@@ -184,16 +212,18 @@ export default function Messages() {
       </aside>
 
       <div className="messages-app">
-        <header className="messages-topbar">
-          <div className="messages-topbar-spacer" />
-          <div className="messages-topbar-user">
-            <button type="button" className="messages-topbar-icon" aria-label="Notifications">
+        <header className="seller-topbar seller-topbar-gray seller-topbar-with-breadcrumb">
+          <nav className="breadcrumb" aria-label="Breadcrumb">
+            <span className="breadcrumb-current">Messages</span>
+          </nav>
+          <div className="seller-topbar-right">
+            <button type="button" className="seller-topbar-icon-btn" aria-label="Notifications">
               <IconBell />
             </button>
-            <div className="messages-topbar-info">
-              <span className="messages-topbar-name">{fullName}</span>
+            <div className="seller-topbar-user">
+              <span className="seller-topbar-user-name">{fullName}</span>
             </div>
-            <div className="messages-avatar messages-avatar-orange" aria-hidden="true">{initials}</div>
+            <AvatarMenu accountPath={isProducer ? "/seller/account" : "/buyer/account"} variant="seller-topbar" />
           </div>
         </header>
 
@@ -205,88 +235,176 @@ export default function Messages() {
               <input type="search" placeholder="Search conversations..." className="messages-search-input" aria-label="Search" />
             </div>
             <ul className="messages-conversation-list">
-              {CONVERSATIONS.map((c) => (
-                <li key={c.id}>
-                  <Link to="#" className={"messages-conv-item " + (c.selected ? "messages-conv-item-selected" : "")}>
-                    <div className={"messages-conv-avatar messages-conv-avatar-" + AVATAR_COLORS[c.id]}>
-                      {AVATAR_LABELS[c.id]}
-                    </div>
-                    <div className="messages-conv-body">
-                      <div className="messages-conv-row">
-                        <span className="messages-conv-name">{c.name}</span>
-                        <span className="messages-conv-time">{c.time}</span>
-                      </div>
-                      <div className="messages-conv-preview">
-                        {c.online && <span className="messages-conv-dot" aria-hidden="true" />}
-                        <span className="messages-conv-last">{c.last}</span>
-                        {c.unread > 0 && <span className="messages-conv-badge">{c.unread}</span>}
-                      </div>
-                    </div>
-                  </Link>
-                </li>
-              ))}
+              {isProducer && producerConversations.length > 0
+                ? producerConversations.map((c) => {
+                    const lastMsg = c.messages && c.messages.length > 0 ? c.messages[c.messages.length - 1] : null;
+                    const preview = lastMsg ? (lastMsg.body.length > 40 ? lastMsg.body.slice(0, 40) + "…" : lastMsg.body) : "No messages yet";
+                    const time = lastMsg ? formatMessageTime(lastMsg.createdAt) : "—";
+                    const buyerInitials = c.buyerName.trim().split(/\s+/).length >= 2
+                      ? (c.buyerName.trim().split(/\s+/)[0][0] + c.buyerName.trim().split(/\s+/).pop()[0]).toUpperCase()
+                      : (c.buyerName.trim()[0] || "?").toUpperCase();
+                    return (
+                      <li key={c.id}>
+                        <button
+                          type="button"
+                          className={"messages-conv-item " + (selectedConvId === c.id ? "messages-conv-item-selected" : "")}
+                          onClick={() => setSelectedConvId(c.id)}
+                        >
+                          <div className="messages-conv-avatar messages-conv-avatar-green">
+                            {buyerInitials}
+                          </div>
+                          <div className="messages-conv-body">
+                            <div className="messages-conv-row">
+                              <span className="messages-conv-name">{c.buyerName}</span>
+                              <span className="messages-conv-time">{time}</span>
+                            </div>
+                            <div className="messages-conv-preview">
+                              <span className="messages-conv-last">{preview}</span>
+                              {c.messages && c.messages.length > 0 && <span className="messages-conv-dot" aria-hidden="true" />}
+                            </div>
+                          </div>
+                        </button>
+                      </li>
+                    );
+                  })
+                : CONVERSATIONS.map((c) => (
+                    <li key={c.id}>
+                      <Link to="#" className={"messages-conv-item " + (c.selected ? "messages-conv-item-selected" : "")}>
+                        <div className={"messages-conv-avatar messages-conv-avatar-" + AVATAR_COLORS[c.id]}>
+                          {AVATAR_LABELS[c.id]}
+                        </div>
+                        <div className="messages-conv-body">
+                          <div className="messages-conv-row">
+                            <span className="messages-conv-name">{c.name}</span>
+                            <span className="messages-conv-time">{c.time}</span>
+                          </div>
+                          <div className="messages-conv-preview">
+                            {c.online && <span className="messages-conv-dot" aria-hidden="true" />}
+                            <span className="messages-conv-last">{c.last}</span>
+                            {c.unread > 0 && <span className="messages-conv-badge">{c.unread}</span>}
+                          </div>
+                        </div>
+                      </Link>
+                    </li>
+                  ))}
             </ul>
           </aside>
 
           <main className="messages-chat-pane">
-            <header className="messages-chat-header">
-              <div className="messages-chat-header-left">
-                <div className="messages-chat-avatar messages-chat-avatar-green">GT</div>
-                <div>
-                  <span className="messages-chat-contact-name">GreenTech Manufacturing</span>
-                  <div className="messages-chat-meta">
-                    <Stars value={5} />
-                    <span className="messages-chat-online">
-                      <span className="messages-chat-online-dot" /> Online
+            {selectedConv ? (
+              <>
+                <header className="messages-chat-header">
+                  <div className="messages-chat-header-left">
+                    <div className="messages-chat-avatar messages-chat-avatar-green">
+                      {selectedConv.buyerName.trim().split(/\s+/).length >= 2
+                        ? (selectedConv.buyerName.trim().split(/\s+/)[0][0] + selectedConv.buyerName.trim().split(/\s+/).pop()[0]).toUpperCase()
+                        : (selectedConv.buyerName.trim()[0] || "?")}
+                    </div>
+                    <div>
+                      <span className="messages-chat-contact-name">{selectedConv.buyerName}</span>
+                      <div className="messages-chat-meta">
+                        <span className="messages-chat-online">Buyer • Contact about listing</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="messages-chat-header-actions">
+                    <button type="button" className="messages-chat-action-btn" aria-label="Call">
+                      <IconPhone />
+                    </button>
+                    <button type="button" className="messages-chat-action-btn" aria-label="Video call">
+                      <IconVideo />
+                    </button>
+                    <button type="button" className="messages-chat-action-btn" aria-label="More">
+                      <IconEllipsisV />
+                    </button>
+                  </div>
+                </header>
+
+                <div className="messages-listing-card">
+                  <IconCube className="messages-listing-icon" />
+                  <div className="messages-listing-info">
+                    <span className="messages-listing-title">{selectedConv.listingTitle}</span>
+                    <span className="messages-listing-qty">Listing ID: #{selectedConv.listingId}</span>
+                  </div>
+                </div>
+
+                <div className="messages-bubbles">
+                  {(selectedConv.messages || []).map((msg, idx) => (
+                    <div
+                      key={idx}
+                      className={msg.from === "buyer" ? "messages-bubble messages-bubble-in" : "messages-bubble messages-bubble-out"}
+                    >
+                      <p className="messages-bubble-text">{msg.body}</p>
+                      <div className="messages-bubble-meta">
+                        {formatMessageTime(msg.createdAt)}
+                        {msg.from === "buyer" && <IconCheck className="messages-bubble-check" />}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <>
+                <header className="messages-chat-header">
+                  <div className="messages-chat-header-left">
+                    <div className="messages-chat-avatar messages-chat-avatar-green">GT</div>
+                    <div>
+                      <span className="messages-chat-contact-name">GreenTech Manufacturing</span>
+                      <div className="messages-chat-meta">
+                        <Stars value={5} />
+                        <span className="messages-chat-online">
+                          <span className="messages-chat-online-dot" /> Online
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="messages-chat-header-actions">
+                    <button type="button" className="messages-chat-action-btn" aria-label="Call">
+                      <IconPhone />
+                    </button>
+                    <button type="button" className="messages-chat-action-btn" aria-label="Video call">
+                      <IconVideo />
+                    </button>
+                    <button type="button" className="messages-chat-action-btn" aria-label="More">
+                      <IconEllipsisV />
+                    </button>
+                  </div>
+                </header>
+
+                <div className="messages-listing-card">
+                  <IconCube className="messages-listing-icon" />
+                  <div className="messages-listing-info">
+                    <span className="messages-listing-title">Industrial Polyethylene (HDPE)</span>
+                    <span className="messages-listing-qty">Qty: 1200 kg</span>
+                    <span className="messages-listing-location">
+                      <IconMapPin /> Industrial Zone, Lagos
                     </span>
                   </div>
                 </div>
-              </div>
-              <div className="messages-chat-header-actions">
-                <button type="button" className="messages-chat-action-btn" aria-label="Call">
-                  <IconPhone />
-                </button>
-                <button type="button" className="messages-chat-action-btn" aria-label="Video call">
-                  <IconVideo />
-                </button>
-                <button type="button" className="messages-chat-action-btn" aria-label="More">
-                  <IconEllipsisV />
-                </button>
-              </div>
-            </header>
 
-            <div className="messages-listing-card">
-              <IconCube className="messages-listing-icon" />
-              <div className="messages-listing-info">
-                <span className="messages-listing-title">Industrial Polyethylene (HDPE)</span>
-                <span className="messages-listing-qty">Qty: 1200 kg</span>
-                <span className="messages-listing-location">
-                  <IconMapPin /> Industrial Zone, Lagos
-                </span>
-              </div>
-            </div>
-
-            <div className="messages-bubbles">
-              <div className="messages-bubble messages-bubble-out">
-                <p className="messages-bubble-text">
-                  Hi, I'm interested in your 1200kg HDPE listing. Is it still available? When can pickup be scheduled?
-                </p>
-                <div className="messages-bubble-meta">
-                  <span>10:30 AM</span>
-                  <IconCheck className="messages-bubble-check" />
+                <div className="messages-bubbles">
+                  <div className="messages-bubble messages-bubble-out">
+                    <p className="messages-bubble-text">
+                      Hi, I'm interested in your 1200kg HDPE listing. Is it still available? When can pickup be scheduled?
+                    </p>
+                    <div className="messages-bubble-meta">
+                      <span>10:30 AM</span>
+                      <IconCheck className="messages-bubble-check" />
+                    </div>
+                  </div>
+                  <div className="messages-bubble messages-bubble-in">
+                    <p className="messages-bubble-text">Hello! Yes, the material is still available.</p>
+                    <div className="messages-bubble-meta">10:42 AM</div>
+                  </div>
+                  <div className="messages-bubble messages-bubble-in">
+                    <p className="messages-bubble-text">
+                      Yes, the material is still available. We can schedule pickup for tomorrow.
+                    </p>
+                    <div className="messages-bubble-meta">10:45 AM</div>
+                  </div>
                 </div>
-              </div>
-              <div className="messages-bubble messages-bubble-in">
-                <p className="messages-bubble-text">Hello! Yes, the material is still available.</p>
-                <div className="messages-bubble-meta">10:42 AM</div>
-              </div>
-              <div className="messages-bubble messages-bubble-in">
-                <p className="messages-bubble-text">
-                  Yes, the material is still available. We can schedule pickup for tomorrow.
-                </p>
-                <div className="messages-bubble-meta">10:45 AM</div>
-              </div>
-            </div>
+              </>
+            )}
 
             <div className="messages-input-wrap">
               <button type="button" className="messages-input-attach" aria-label="Attach">

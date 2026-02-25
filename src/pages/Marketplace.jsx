@@ -1,6 +1,10 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import ecoLoopLogo from "../assets/brand/ecoloop-logo.png";
+import AvatarMenu from "../components/AvatarMenu";
 import imgHDPE from "../assets/services/hdpe.png";
+import { useToast } from "../contexts/ToastContext";
+import { sendContactMessage } from "../utils/contactMessages";
 
 function getFullNameAndInitials() {
   const fullName = typeof window !== "undefined" ? (localStorage.getItem("ecoloop_fullName") || "User") : "User";
@@ -135,6 +139,40 @@ const LISTINGS = [
 
 export default function Marketplace() {
   const { fullName, initials } = getFullNameAndInitials();
+  const showToast = useToast();
+  const [contactModal, setContactModal] = useState(null);
+  const [contactMessage, setContactMessage] = useState("");
+  const [sending, setSending] = useState(false);
+
+  const openContact = (item) => {
+    setContactModal(item);
+    setContactMessage("");
+  };
+
+  const closeContact = () => {
+    setContactModal(null);
+    setContactMessage("");
+  };
+
+  const handleSendContact = () => {
+    const body = contactMessage.trim();
+    if (!body || !contactModal) return;
+    setSending(true);
+    try {
+      sendContactMessage(
+        { listingId: contactModal.id, listingTitle: contactModal.title, sellerName: contactModal.seller },
+        fullName,
+        body
+      );
+      showToast("Message sent. The seller will see it in their Messages.");
+      closeContact();
+    } catch (e) {
+      showToast("Could not send message. Try again.");
+    } finally {
+      setSending(false);
+    }
+  };
+
   return (
     <div className="seller-layout marketplace-layout">
       <aside className="marketplace-sidebar">
@@ -166,14 +204,19 @@ export default function Marketplace() {
       </aside>
 
       <div className="marketplace-main">
-        <header className="marketplace-topbar">
-          <div className="marketplace-topbar-user">
-            <span className="marketplace-user-name">{fullName}</span>
+        <header className="seller-topbar seller-topbar-gray seller-topbar-with-breadcrumb">
+          <nav className="breadcrumb" aria-label="Breadcrumb">
+            <span className="breadcrumb-current">Marketplace</span>
+          </nav>
+          <div className="seller-topbar-right">
+            <button type="button" className="seller-topbar-icon-btn" aria-label="Notifications">
+              <IconBell />
+            </button>
+            <div className="seller-topbar-user">
+              <span className="seller-topbar-user-name">{fullName}</span>
+            </div>
+            <AvatarMenu accountPath="/seller/account" variant="seller-topbar" />
           </div>
-          <button type="button" className="marketplace-topbar-icon" aria-label="Notifications">
-            <IconBell />
-          </button>
-          <div className="marketplace-avatar marketplace-avatar-orange" aria-hidden="true">{initials}</div>
         </header>
 
         <main className="marketplace-content">
@@ -219,15 +262,56 @@ export default function Marketplace() {
                     </span>
                     <span className="marketplace-card-listed">{item.listed}</span>
                   </div>
-                  <Link to="/marketplace/contact" className="btn btn-primary marketplace-card-btn">
+                  <button
+                    type="button"
+                    className="btn btn-primary marketplace-card-btn"
+                    onClick={() => openContact(item)}
+                  >
                     Contact Seller
-                  </Link>
+                  </button>
                 </div>
               </article>
             ))}
           </div>
         </main>
       </div>
+
+      {contactModal && (
+        <div className="contact-seller-overlay" role="dialog" aria-modal="true" aria-labelledby="contact-seller-title">
+          <div className="contact-seller-modal">
+            <h2 id="contact-seller-title" className="contact-seller-title">
+              Message seller
+            </h2>
+            <p className="contact-seller-subtitle">
+              Contact <strong>{contactModal.seller}</strong> about &ldquo;{contactModal.title}&rdquo;
+            </p>
+            <textarea
+              className="contact-seller-textarea"
+              placeholder="Type your message..."
+              value={contactMessage}
+              onChange={(e) => setContactMessage(e.target.value)}
+              rows={4}
+              aria-label="Your message"
+            />
+            <div className="contact-seller-actions">
+              <button type="button" className="btn btn-secondary" onClick={closeContact}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleSendContact}
+                disabled={sending || !contactMessage.trim()}
+              >
+                {sending ? "Sending…" : "Send message"}
+              </button>
+            </div>
+            <button type="button" className="contact-seller-close" aria-label="Close" onClick={closeContact}>
+              ×
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

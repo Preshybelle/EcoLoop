@@ -1,8 +1,16 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import ecoLoopLogo from "../assets/brand/ecoloop-logo.png";
+import AvatarMenu from "../components/AvatarMenu";
 import listingPlaceholder from "../assets/inventory/hdpe-plastic.png";
 import { createListingManual, createListingAi } from "../services/listingsApi";
+import {
+  getQuantityTonsFromStorage,
+  getMaterialTypeFromStorage,
+  getCo2Savings,
+  getRecyclabilityPercent,
+  STORAGE_KEYS,
+} from "../utils/environmentalImpact";
 
 function getFullNameAndInitials() {
   const fullName = typeof window !== "undefined" ? (localStorage.getItem("ecoloop_fullName") || "Producer") : "Producer";
@@ -70,27 +78,105 @@ const STEPS = [
   { num: 5, label: "Review", completed: true },
 ];
 
+const NOTES_STORAGE_KEY = "ecoloop_create_listing_notes";
+const DRAFTS_STORAGE_KEY = "ecoloop_inventory_drafts";
+const DEFAULT_NOTES = "Material is already sorted and baled. Pick-up required between 8 AM and 4 PM. Loading assistance available on site with forklift. Please confirm vehicle size before dispatch.";
+
+function getSavedDrafts() {
+  if (typeof localStorage === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(DRAFTS_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveDraftToInventory(draft) {
+  const drafts = getSavedDrafts();
+  drafts.unshift({ ...draft, id: `draft-${Date.now()}`, savedAt: new Date().toISOString() });
+  localStorage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(drafts));
+}
+
 export default function CreateListingReview() {
   const { fullName, initials } = getFullNameAndInitials();
   const navigate = useNavigate();
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState("");
+  const [specialInstructions, setSpecialInstructions] = useState(() => {
+    if (typeof sessionStorage === "undefined") return DEFAULT_NOTES;
+    return sessionStorage.getItem(NOTES_STORAGE_KEY) || DEFAULT_NOTES;
+  });
+  const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const [notesEditDraft, setNotesEditDraft] = useState("");
+  const [draftSaved, setDraftSaved] = useState(false);
 
+  const startEditingNotes = () => {
+    setNotesEditDraft(specialInstructions);
+    setIsEditingNotes(true);
+  };
+  const saveNotes = () => {
+    const trimmed = notesEditDraft.trim() || DEFAULT_NOTES;
+    setSpecialInstructions(trimmed);
+    if (typeof sessionStorage !== "undefined") sessionStorage.setItem(NOTES_STORAGE_KEY, trimmed);
+    setIsEditingNotes(false);
+  };
+  const cancelEditingNotes = () => {
+    setNotesEditDraft(specialInstructions);
+    setIsEditingNotes(false);
+  };
+
+  const handleSaveDraft = () => {
+    if (typeof sessionStorage !== "undefined") {
+      sessionStorage.setItem("ecoloop_create_listing_draft_saved_at", new Date().toISOString());
+    }
+    const allowNegotiation = typeof sessionStorage !== "undefined" && sessionStorage.getItem("ecoloop_create_listing_allow_negotiation") === "true";
+    const quantity = typeof sessionStorage !== "undefined" ? sessionStorage.getItem(STORAGE_KEYS.quantity) || String(quantityTons) : String(quantityTons);
+    const unit = typeof sessionStorage !== "undefined" ? sessionStorage.getItem(STORAGE_KEYS.unit) || "tons" : "tons";
+    const draft = {
+      title: "Grade A Plastic Scrap",
+      description: specialInstructions,
+      quantityDisplay,
+      quantityTons,
+      quantity,
+      unit,
+      materialType: materialType || "PLASTIC",
+      price: 165000,
+      currency: "NGN",
+      allowNegotiation,
+    };
+    if (typeof localStorage !== "undefined") {
+      saveDraftToInventory(draft);
+    }
+    setDraftSaved(true);
+    setTimeout(() => setDraftSaved(false), 3000);
+  };
+
+  const quantityTons = getQuantityTonsFromStorage();
+  const materialType = getMaterialTypeFromStorage();
+  const { display: co2Display } = getCo2Savings(quantityTons);
+  const recyclabilityPercent = getRecyclabilityPercent(materialType);
+  const quantityDisplay = quantityTons >= 1
+    ? `${quantityTons.toFixed(1)} Tons`
+    : `${Math.round(quantityTons * 1000)} kg`;
+
+  /** Publish listing to the marketplace only when the user clicks "Publish Listing". No auto-publish on load or navigation. */
   const handlePublish = async (e) => {
     e.preventDefault();
     setPublishError("");
     setPublishing(true);
     try {
       const image = typeof sessionStorage !== "undefined" ? sessionStorage.getItem("ecoloop_create_listing_upload") : null;
+      const allowNegotiation = typeof sessionStorage !== "undefined" && sessionStorage.getItem("ecoloop_create_listing_allow_negotiation") === "true";
       const title = "Grade A Plastic Scrap";
-      const description = "Material is already sorted and baled. Pick-up required between 8 AM and 4 PM. Loading assistance available on site with forklift. Please confirm vehicle size before dispatch.";
+      const description = specialInstructions;
       const price = 165000;
       const currency = "NGN";
       const state = "lagos";
 
       let data;
       if (image && image.startsWith("data:")) {
-        data = await createListingAi({ image, title, description, price, currency, state });
+        data = await createListingAi({ image, title, description, price, currency, state, allowNegotiation });
       } else {
         data = await createListingManual({
           title,
@@ -100,10 +186,18 @@ export default function CreateListingReview() {
           price,
           currency,
           state,
+          allowNegotiation,
         });
       }
       const listingId = data.listing?.id ?? data.id ?? data.listingId;
-      navigate("/seller/listing-published", { state: { listingId, listing: data.listing ?? data } });
+      const listing = data.listing ?? data;
+      navigate("/seller/listing-published", {
+        state: {
+          listingId,
+          listing: { ...listing, allowNegotiation },
+          allowNegotiation,
+        },
+      });
     } catch (err) {
       setPublishError(err instanceof Error ? err.message : "Failed to publish listing");
     } finally {
@@ -149,7 +243,9 @@ export default function CreateListingReview() {
           <nav className="breadcrumb" aria-label="Breadcrumb">
             <Link to="/listings">Marketplace</Link>
             <span className="breadcrumb-sep">&gt;</span>
-            <span className="breadcrumb-current">New Listing</span>
+            <Link to="/seller/create-listing">New Listing</Link>
+            <span className="breadcrumb-sep">&gt;</span>
+            <span className="breadcrumb-current">Review</span>
           </nav>
           <div className="seller-topbar-right">
             <span className="review-topbar-leaf" aria-hidden="true">
@@ -158,18 +254,23 @@ export default function CreateListingReview() {
             <div className="seller-topbar-user">
               <span className="seller-topbar-user-name">{fullName}</span>
             </div>
-            <div className="seller-topbar-avatar seller-topbar-avatar-initials" aria-hidden="true">{initials}</div>
+            <AvatarMenu accountPath="/seller/account" variant="seller-topbar" />
           </div>
         </header>
 
         <main className="create-listing-content review-content">
           <h1 className="create-listing-title">Review & Publish Listing</h1>
-          <p className="create-listing-subtitle">Confirm all details before publishing to the marketplace.</p>
+          <p className="create-listing-subtitle">Confirm all details. The listing will only go live on the marketplace when you click &quot;Publish Listing&quot; below.</p>
 
           {publishError && (
             <div className="register-form-errors review-publish-error" role="alert">
               {publishError}
             </div>
+          )}
+          {draftSaved && (
+            <p className="review-draft-saved-msg" role="status">
+              Draft saved. You can continue later from Create Listing.
+            </p>
           )}
           <div className="review-progress-row">
             <span className="review-step-label">STEP 5 OF 5: REVIEW</span>
@@ -217,7 +318,7 @@ export default function CreateListingReview() {
               <div className="review-listing-meta">
                 <div className="review-listing-meta-item">
                   <span className="review-listing-meta-label">QUANTITY</span>
-                  <span className="review-listing-meta-value">5.0 Tons</span>
+                  <span className="review-listing-meta-value">{quantityDisplay}</span>
                 </div>
                 <div className="review-listing-meta-item">
                   <span className="review-listing-meta-label">PRICING</span>
@@ -233,11 +334,36 @@ export default function CreateListingReview() {
                 <IconDoc className="review-section-icon" />
                 SPECIAL INSTRUCTIONS
               </span>
-              <button type="button" className="review-edit-notes">EDIT NOTES</button>
+              {!isEditingNotes ? (
+                <button type="button" className="review-edit-notes" onClick={startEditingNotes}>
+                  EDIT NOTES
+                </button>
+              ) : null}
             </div>
-            <div className="review-instructions-box">
-              Material is already sorted and baled. Pick-up required between 8 AM and 4 PM. Loading assistance available on site with forklift. Please confirm vehicle size before dispatch.
-            </div>
+            {isEditingNotes ? (
+              <div className="review-instructions-edit">
+                <textarea
+                  className="review-instructions-textarea"
+                  value={notesEditDraft}
+                  onChange={(e) => setNotesEditDraft(e.target.value)}
+                  placeholder="Add special instructions for buyers (pick-up, loading, contact, etc.)"
+                  rows={4}
+                  aria-label="Special instructions"
+                />
+                <div className="review-instructions-edit-actions">
+                  <button type="button" className="btn btn-primary review-edit-save-btn" onClick={saveNotes}>
+                    Save notes
+                  </button>
+                  <button type="button" className="review-edit-cancel-btn" onClick={cancelEditingNotes}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="review-instructions-box">
+                {specialInstructions}
+              </div>
+            )}
           </section>
 
           <section className="review-section">
@@ -251,14 +377,14 @@ export default function CreateListingReview() {
                   <IconLeaf />
                 </div>
                 <span className="review-impact-label">CO₂ SAVINGS</span>
-                <span className="review-impact-value">1.2 Tons</span>
+                <span className="review-impact-value">{co2Display}</span>
               </div>
               <div className="review-impact-card">
                 <div className="review-impact-icon review-impact-icon-green">
                   <IconRecycle />
                 </div>
                 <span className="review-impact-label">RECYCLABILITY</span>
-                <span className="review-impact-value">85%</span>
+                <span className="review-impact-value">{recyclabilityPercent}%</span>
               </div>
             </div>
           </section>
@@ -267,6 +393,14 @@ export default function CreateListingReview() {
             <Link to="/seller/create-listing/price" className="material-details-back-btn">
               <IconHelp /> Back to Pricing
             </Link>
+            <button
+              type="button"
+              className="btn btn-secondary review-save-draft-btn"
+              onClick={handleSaveDraft}
+              disabled={publishing}
+            >
+              Save Draft
+            </button>
             <button
               type="button"
               className="btn btn-primary material-details-continue-btn review-publish-btn"

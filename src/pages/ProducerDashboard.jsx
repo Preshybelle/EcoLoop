@@ -4,7 +4,7 @@ import ecoLoopLogo from "../assets/brand/ecoloop-logo.png";
 import { getListings } from "../services/listingsApi";
 import { getProducerLevel } from "../utils/producerLevel";
 import { getDisplayName } from "../utils/userDisplay";
-import Avatar from "../components/Avatar";
+import AvatarMenu from "../components/AvatarMenu";
 
 const IconGrid9 = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="5" height="5" rx="0.5"/><rect x="10" y="3" width="5" height="5" rx="0.5"/><rect x="17" y="3" width="4" height="5" rx="0.5"/><rect x="3" y="10" width="5" height="5" rx="0.5"/><rect x="10" y="10" width="5" height="5" rx="0.5"/><rect x="17" y="10" width="4" height="5" rx="0.5"/><rect x="3" y="17" width="5" height="4" rx="0.5"/><rect x="10" y="17" width="5" height="4" rx="0.5"/><rect x="17" y="17" width="4" height="4" rx="0.5"/></svg>
@@ -214,8 +214,10 @@ export default function ProducerDashboard() {
       </aside>
 
       <div className="seller-main-wrap">
-        <header className="seller-topbar producer-dashboard-topbar">
-          <p className="seller-topbar-subtitle" />
+        <header className="seller-topbar producer-dashboard-topbar seller-topbar-with-breadcrumb">
+          <nav className="breadcrumb" aria-label="Breadcrumb">
+            <span className="breadcrumb-current">Dashboard</span>
+          </nav>
           <div className="seller-topbar-right">
             <Link to="/seller/messages" className="seller-topbar-icon-btn producer-bell-link" aria-label={newMessagesCount > 0 ? `${newMessagesCount} new messages` : "Messages"}>
               <span className="producer-bell-wrap">
@@ -228,7 +230,7 @@ export default function ProducerDashboard() {
             <div className="seller-topbar-user">
               <span className="seller-topbar-user-name">{fullName}</span>
             </div>
-            <Avatar variant="seller-topbar" />
+            <AvatarMenu accountPath="/seller/account" variant="seller-topbar" />
           </div>
         </header>
 

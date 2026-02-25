@@ -1,4 +1,6 @@
 import { Link } from "react-router-dom";
+import { getAuthToken } from "../utils/auth";
+import { useToast } from "../contexts/ToastContext";
 
 const IconGrid = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -26,13 +28,34 @@ const IconYouTube = () => (
 );
 
 function ContactSection() {
+  const isLoggedIn = Boolean(getAuthToken());
+  const showToast = useToast();
+
+  const handleMarketplaceClick = (e) => {
+    if (isLoggedIn) return;
+    e.preventDefault();
+    showToast("Sign Up or Log In");
+  };
+
   return (
     <section className="section contact-section">
       <div className="contact-section-top">
-        <Link to="/marketplace" className="contact-marketplace-btn">
-          <IconGrid />
-          Go to Marketplace
-        </Link>
+        {isLoggedIn ? (
+          <Link to="/marketplace" className="contact-marketplace-btn">
+            <IconGrid />
+            Go to Marketplace
+          </Link>
+        ) : (
+          <button
+            type="button"
+            className="contact-marketplace-btn contact-marketplace-btn-inactive"
+            onClick={handleMarketplaceClick}
+            aria-label="Go to Marketplace – sign in or sign up to access"
+          >
+            <IconGrid />
+            Go to Marketplace
+          </button>
+        )}
       </div>
       <div className="contact-container">
         <div className="contact-inner">

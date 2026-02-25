@@ -182,7 +182,7 @@ export async function createListing(payload) {
  * Create a new listing (manual).
  * POST /api/v1/listings/manual
  * 201: Listing created successfully | 400: Validation error | 401: Unauthorized | 403: Forbidden
- * @param {object} payload - { title, description, materialType, weight, price, currency, state }
+ * @param {object} payload - { title, description, materialType, weight, price, currency, state, allowNegotiation?: boolean }
  * @returns {Promise<object>} Created listing or response body
  * @throws {Error} with .details for validation errors (400)
  */
@@ -202,6 +202,9 @@ export async function createListingManual(payload) {
     currency: String(payload.currency ?? "").trim(),
     state: String(payload.state ?? "").trim(),
   };
+  if (payload.allowNegotiation === true) {
+    body.allowNegotiation = true;
+  }
 
   const res = await fetch(url, {
     method: "POST",
@@ -265,6 +268,9 @@ export async function createListingAi(payload) {
   }
   if (payload.state != null && String(payload.state).trim()) {
     form.append("state", String(payload.state).trim());
+  }
+  if (payload.allowNegotiation === true) {
+    form.append("allowNegotiation", "true");
   }
 
   const token = getAuthToken();

@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import ecoLoopLogo from "../assets/brand/ecoloop-logo.png";
+import AvatarMenu from "../components/AvatarMenu";
 
 const IconGrid = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
@@ -64,7 +65,6 @@ export default function CreateListing() {
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setFileName(file.name);
     setPreviewUrl(null);
     const type = (file.type || "").toLowerCase();
     const isImageByType = type.startsWith("image/");
@@ -72,26 +72,30 @@ export default function CreateListing() {
     const isImg = isImageByType || isImageByExt;
     setIsImage(isImg);
 
-    if (isImg) {
-      setPreviewLoading(true);
-      const reader = new FileReader();
-      reader.onload = () => {
-        setPreviewLoading(false);
-        if (typeof reader.result === "string") {
-          setPreviewUrl(reader.result);
-          try {
-            sessionStorage.setItem("ecoloop_create_listing_upload", reader.result);
-          } catch (_) {}
-        }
-      };
-      reader.onerror = () => {
-        setPreviewLoading(false);
-        setPreviewUrl(null);
-      };
-      reader.readAsDataURL(file);
-    } else {
+    if (!isImg) {
+      setFileName(null);
       setPreviewLoading(false);
+      e.target.value = "";
+      return;
     }
+
+    setFileName(file.name);
+    setPreviewLoading(true);
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPreviewLoading(false);
+      if (typeof reader.result === "string") {
+        setPreviewUrl(reader.result);
+        try {
+          sessionStorage.setItem("ecoloop_create_listing_upload", reader.result);
+        } catch (_) {}
+      }
+    };
+    reader.onerror = () => {
+      setPreviewLoading(false);
+      setPreviewUrl(null);
+    };
+    reader.readAsDataURL(file);
     e.target.value = "";
   };
 
@@ -131,8 +135,14 @@ export default function CreateListing() {
       </aside>
 
       <div className="seller-main-wrap seller-main-wrap-gray">
-        <header className="seller-topbar seller-topbar-gray">
-          <p className="seller-topbar-subtitle" />
+        <header className="seller-topbar seller-topbar-gray seller-topbar-with-breadcrumb">
+          <nav className="breadcrumb" aria-label="Breadcrumb">
+            <Link to="/listings">Marketplace</Link>
+            <span className="breadcrumb-sep">&gt;</span>
+            <Link to="/seller/create-listing">New Listing</Link>
+            <span className="breadcrumb-sep">&gt;</span>
+            <span className="breadcrumb-current">Upload</span>
+          </nav>
           <div className="seller-topbar-right">
             <button type="button" className="seller-topbar-icon-btn" aria-label="Notifications">
               <IconBell />
@@ -140,7 +150,7 @@ export default function CreateListing() {
             <div className="seller-topbar-user">
               <span className="seller-topbar-user-name">{fullName}</span>
             </div>
-            <div className="seller-topbar-avatar seller-topbar-avatar-initials" aria-hidden="true">{initials}</div>
+            <AvatarMenu accountPath="/seller/account" variant="seller-topbar" />
           </div>
         </header>
 
@@ -192,12 +202,12 @@ export default function CreateListing() {
               onKeyDown={(e) => e.key === "Enter" && !previewUrl && !fileName && fileInputRef.current?.click()}
               role="button"
               tabIndex={0}
-              aria-label="Upload image or file"
+              aria-label="Upload image"
             >
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/jpeg,image/png,image/jpg,image/gif,image/webp,.pdf"
+                accept="image/*"
                 className="create-listing-file-input"
                 onChange={handleFileChange}
                 aria-hidden
@@ -217,7 +227,7 @@ export default function CreateListing() {
                 <>
                   <IconCamera />
                   <p className="create-listing-upload-text">Upload image of material</p>
-                  <p className="create-listing-upload-hint">Supports JPG, PNG, PDF up to 10MB</p>
+                  <p className="create-listing-upload-hint">Images only: JPG, PNG, GIF, WebP up to 10MB</p>
                 </>
               )}
               <div className="create-listing-upload-zone-actions">

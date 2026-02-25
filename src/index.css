@@ -15,6 +15,33 @@ body {
   background-color: var(--white);
 }
 
+/* Toast (fixed bottom-center) */
+.toast {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.75rem 1.5rem;
+  background: #1f2937;
+  color: var(--white);
+  font-size: 0.95rem;
+  font-weight: 500;
+  border-radius: 10px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  z-index: 9999;
+  animation: toast-in 0.25s ease-out;
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
 /* Container inside body that wraps the cards (login/register) */
 /* Page: light grey background (as in reference image) */
 .auth-page-container {
@@ -196,6 +223,22 @@ img {
 
 .navbar-links a:hover {
   color: var(--green-mid);
+}
+
+.navbar-link {
+  font-weight: 600;
+  color: var(--gray-text);
+  text-decoration: none;
+  cursor: default;
+}
+
+.navbar-link-inactive {
+  cursor: pointer;
+  opacity: 0.85;
+}
+
+.navbar-link-inactive:hover {
+  color: var(--gray-text);
 }
 
 .navbar-actions {
@@ -498,6 +541,16 @@ img {
 
 .contact-marketplace-btn:hover {
   background-color: #218838;
+  color: var(--white);
+}
+
+.contact-marketplace-btn-inactive {
+  cursor: pointer;
+  opacity: 0.9;
+}
+
+.contact-marketplace-btn-inactive:hover {
+  background-color: #28a745;
   color: var(--white);
 }
 
@@ -1199,6 +1252,13 @@ button {
 .register-field-error-checkbox {
   margin-top: 0.25rem;
   margin-bottom: 0.5rem;
+}
+
+.register-password-hint {
+  margin: 0.25rem 0 0.5rem;
+  font-size: 0.8rem;
+  color: var(--gray-600, #6b7280);
+  line-height: 1.35;
 }
 
 .register-submit {
@@ -3698,6 +3758,25 @@ button.producer-metric-card:hover {
   color: #9ca3af;
 }
 
+.inventory-card-edit-draft {
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--green-primary);
+  background: transparent;
+  border: 1px solid var(--green-primary);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+  width: 100%;
+}
+
+.inventory-card-edit-draft:hover {
+  background-color: var(--green-primary);
+  color: var(--white);
+}
+
 @media (max-width: 1100px) {
   .inventory-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -3920,6 +3999,67 @@ button.producer-metric-card:hover {
   flex-shrink: 0;
 }
 
+/* Avatar menu (dropdown on hover / click) */
+.avatar-menu {
+  position: relative;
+  display: inline-flex;
+}
+.avatar-menu-trigger {
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: 50%;
+  line-height: 0;
+}
+.avatar-menu-trigger:focus {
+  outline: 2px solid var(--green-primary);
+  outline-offset: 2px;
+}
+.avatar-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  min-width: 200px;
+  padding: 0.35rem 0;
+  background: var(--white);
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+}
+.avatar-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.6rem 1rem;
+  font-size: 0.9rem;
+  color: #374151;
+  text-decoration: none;
+  text-align: left;
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+.avatar-menu-item:hover {
+  background-color: #f3f4f6;
+}
+.avatar-menu-item svg {
+  flex-shrink: 0;
+  color: var(--gray-text);
+}
+.avatar-menu-item-logout {
+  color: #b91c1c;
+}
+.avatar-menu-item-logout:hover {
+  background-color: #fef2f2;
+}
+.avatar-menu-item-logout svg {
+  color: #b91c1c;
+}
+
 /* ---------- Account Settings ---------- */
 .account-settings-layout .seller-main-wrap {
   flex-direction: column;
@@ -4033,6 +4173,13 @@ button.producer-metric-card:hover {
 .account-settings-avatar-wrap {
   position: relative;
   flex-shrink: 0;
+}
+
+/* Same avatar as topbar (green initials) at profile size */
+.account-settings-profile-avatar {
+  width: 96px !important;
+  height: 96px !important;
+  font-size: 1.75rem !important;
 }
 
 .account-settings-avatar {
@@ -4221,6 +4368,16 @@ button.producer-metric-card:hover {
   transform: translateY(-50%);
   pointer-events: none;
   color: #6b7280;
+}
+
+.account-settings-save-msg {
+  margin: 0 0 1rem;
+  padding: 0.6rem 1rem;
+  font-size: 0.9rem;
+  color: #065f46;
+  background: #d1fae5;
+  border: 1px solid #a7f3d0;
+  border-radius: 8px;
 }
 
 .account-settings-actions {
@@ -5389,6 +5546,56 @@ button.producer-metric-card:hover {
   line-height: 1.5;
 }
 
+.review-instructions-edit {
+  margin-top: 0.5rem;
+}
+
+.review-instructions-textarea {
+  display: block;
+  width: 100%;
+  min-height: 120px;
+  padding: 1rem 1.25rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #374151;
+  background: var(--white);
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  resize: vertical;
+  margin-bottom: 0.75rem;
+}
+
+.review-instructions-textarea:focus {
+  outline: none;
+  border-color: var(--green-primary);
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
+}
+
+.review-instructions-edit-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.review-edit-save-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+}
+
+.review-edit-cancel-btn {
+  font-size: 0.9rem;
+  color: #6b7280;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem 0;
+}
+
+.review-edit-cancel-btn:hover {
+  color: #374151;
+  text-decoration: underline;
+}
+
 .review-impact-cards {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -5454,6 +5661,17 @@ button.producer-metric-card:hover {
 .review-publish-btn svg {
   width: 18px;
   height: 18px;
+}
+
+.review-save-draft-btn {
+  padding: 0.65rem 1.25rem;
+}
+
+.review-draft-saved-msg {
+  font-size: 0.9rem;
+  color: var(--green-mid, #1a5c1a);
+  margin: 0 0 0.5rem;
+  font-weight: 500;
 }
 
 .review-disclaimer {
@@ -5594,6 +5812,11 @@ button.producer-metric-card:hover {
   gap: 0.5rem;
 }
 
+.confirmation-search-in-topbar {
+  max-width: 220px;
+  flex: 1 1 auto;
+}
+
 .confirmation-icon-btn {
   width: 40px;
   height: 40px;
@@ -5697,6 +5920,13 @@ button.producer-metric-card:hover {
   padding: 0.4rem 1rem;
   border-radius: 999px;
   margin-bottom: 1.5rem;
+}
+
+.confirmation-negotiation-note {
+  font-size: 0.9rem;
+  color: var(--green-mid, #1a5c1a);
+  margin: 0 0 1rem;
+  font-weight: 500;
 }
 
 .confirmation-actions {
@@ -5861,6 +6091,14 @@ button.producer-metric-card:hover {
   padding: 1rem 1.5rem;
   border-bottom: 1px solid #e5e7eb;
   flex-shrink: 0;
+}
+
+.marketplace-topbar-with-path {
+  justify-content: space-between;
+}
+
+.marketplace-topbar-with-path .breadcrumb {
+  margin-right: auto;
 }
 
 .marketplace-topbar-icon {
@@ -6175,6 +6413,85 @@ button.producer-metric-card:hover {
   font-weight: 600;
   border-radius: 10px;
   padding: 0.65rem 1rem;
+}
+
+/* Contact Seller modal */
+.contact-seller-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+.contact-seller-modal {
+  background: var(--white, #fff);
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  max-width: 440px;
+  width: 100%;
+  padding: 1.5rem;
+  position: relative;
+}
+.contact-seller-title {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+.contact-seller-subtitle {
+  margin: 0 0 1rem 0;
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+.contact-seller-subtitle strong {
+  color: #374151;
+}
+.contact-seller-textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 0.75rem 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+  resize: vertical;
+  margin-bottom: 1rem;
+  box-sizing: border-box;
+}
+.contact-seller-textarea:focus {
+  outline: none;
+  border-color: var(--green-primary, #22c55e);
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
+}
+.contact-seller-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+.contact-seller-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: #6b7280;
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.contact-seller-close:hover {
+  background: #f3f4f6;
+  color: #1f2937;
 }
 
 @media (max-width: 900px) {
@@ -6826,6 +7143,24 @@ button.producer-metric-card:hover {
   background: #f9fafb;
 }
 
+.buyer-main-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.buyer-header-breadcrumb {
+  flex-shrink: 0;
+}
+
+.buyer-main-header .buyer-search-wrap {
+  margin-bottom: 0;
+  flex: 1;
+  max-width: 420px;
+}
+
 .buyer-search-wrap {
   display: flex;
   align-items: center;
@@ -6854,6 +7189,15 @@ button.producer-metric-card:hover {
 
 .buyer-search-input::placeholder {
   color: #9ca3af;
+}
+
+.buyer-dashboard-topbar {
+  margin-bottom: 1.5rem;
+}
+
+.buyer-search-in-topbar {
+  max-width: 260px;
+  flex: 1 1 auto;
 }
 
 .buyer-stats {
@@ -7594,6 +7938,10 @@ button.producer-metric-card:hover {
   flex: 1;
 }
 
+.messages-topbar-breadcrumb {
+  margin-right: auto;
+}
+
 .messages-topbar-user {
   display: flex;
   align-items: center;
@@ -7728,6 +8076,12 @@ button.producer-metric-card:hover {
   text-decoration: none;
   color: inherit;
   transition: background 0.2s;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: none;
+  font: inherit;
+  cursor: pointer;
 }
 
 .messages-conv-item:hover {

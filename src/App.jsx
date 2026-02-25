@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { ToastProvider } from "./contexts/ToastContext";
 
 import LandingPage from "./pages/LandingPage";
 import Terms from "./pages/Terms";
@@ -20,8 +21,9 @@ import AccountSettings from "./pages/AccountSettings";
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
+    <ToastProvider>
+      <BrowserRouter>
+        <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/buyer/dashboard" element={<BuyerDashboard />} />
         <Route path="/buyer/account" element={<AccountSettings />} />
@@ -43,8 +45,9 @@ function App() {
         <Route path="/seller/create-listing/scan" element={<AIRecognition />} />
         <Route path="/seller/create-listing" element={<CreateListing />} />
         <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+        </Routes>
+      </BrowserRouter>
+    </ToastProvider>
   );
 }
 

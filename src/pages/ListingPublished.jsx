@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import ecoLoopLogo from "../assets/brand/ecoloop-logo.png";
+import AvatarMenu from "../components/AvatarMenu";
 
 const IconGrid = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
@@ -54,6 +55,7 @@ export default function ListingPublished() {
   const { fullName, initials } = getFullNameAndInitials();
   const { state } = useLocation();
   const listingId = state?.listingId ?? state?.listing?.id ?? state?.id ?? "12345";
+  const allowNegotiation = state?.allowNegotiation === true || state?.listing?.allowNegotiation === true;
   return (
     <div className="seller-layout confirmation-layout">
       <aside className="seller-sidebar seller-sidebar-confirm">
@@ -84,21 +86,29 @@ export default function ListingPublished() {
       </aside>
 
       <div className="seller-main-wrap confirmation-main">
-        <header className="confirmation-topbar">
-          <div className="confirmation-search-wrap">
-            <IconSearch />
-            <input type="search" placeholder="Search listing ID, buyer..." className="confirmation-search-input" aria-label="Search" />
-          </div>
-          <div className="confirmation-topbar-right">
-            <button type="button" className="confirmation-icon-btn" aria-label="Notifications">
+        <header className="seller-topbar seller-topbar-gray seller-topbar-with-breadcrumb">
+          <nav className="breadcrumb" aria-label="Breadcrumb">
+            <Link to="/listings">Marketplace</Link>
+            <span className="breadcrumb-sep">&gt;</span>
+            <Link to="/seller/create-listing">New Listing</Link>
+            <span className="breadcrumb-sep">&gt;</span>
+            <span className="breadcrumb-current">Published</span>
+          </nav>
+          <div className="seller-topbar-right">
+            <div className="confirmation-search-wrap confirmation-search-in-topbar">
+              <IconSearch />
+              <input type="search" placeholder="Search listing ID, buyer..." className="confirmation-search-input" aria-label="Search" />
+            </div>
+            <button type="button" className="seller-topbar-icon-btn" aria-label="Notifications">
               <IconBell />
             </button>
-            <button type="button" className="confirmation-icon-btn" aria-label="Documents">
+            <button type="button" className="seller-topbar-icon-btn" aria-label="Documents">
               <IconDoc />
             </button>
             <Link to="/seller/create-listing" className="btn btn-primary confirmation-new-listing-btn">
               <IconPlus /> New Listing
             </Link>
+            <AvatarMenu accountPath="/seller/account" variant="seller-topbar" />
           </div>
         </header>
 
@@ -113,6 +123,11 @@ export default function ListingPublished() {
               Your listing is now live and visible to buyers. You can track views and offers from your dashboard.
             </p>
             <div className="confirmation-id-tag">Listing ID: #{listingId}</div>
+            {allowNegotiation && (
+              <p className="confirmation-negotiation-note">
+                Buyers can negotiate or send counter-offers on this listing.
+              </p>
+            )}
             <div className="confirmation-actions">
               <Link to="/listings" className="btn btn-primary confirmation-btn-primary">
                 Go to Listings

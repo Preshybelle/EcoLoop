@@ -1,10 +1,30 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import ecoLoopLogo from "../assets/brand/ecoloop-logo.png";
 import { getListings } from "../services/listingsApi";
 import { getProducerLevelFromListings } from "../utils/producerLevel";
 import { getFullNameAndInitials } from "../utils/userDisplay";
+import { getAuthUser, updateStoredUserProfile } from "../utils/auth";
 import Avatar from "../components/Avatar";
+import AvatarMenu from "../components/AvatarMenu";
+
+const PROFILE_STORAGE_KEY = "ecoloop_profile";
+
+function getStoredProfile() {
+  if (typeof localStorage === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(PROFILE_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function setStoredProfile(profile) {
+  if (typeof localStorage !== "undefined") {
+    localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
+  }
+}
 
 const IconGrid9 = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="5" height="5" rx="0.5"/><rect x="10" y="3" width="5" height="5" rx="0.5"/><rect x="17" y="3" width="4" height="5" rx="0.5"/><rect x="3" y="10" width="5" height="5" rx="0.5"/><rect x="10" y="10" width="5" height="5" rx="0.5"/><rect x="17" y="10" width="4" height="5" rx="0.5"/><rect x="3" y="17" width="5" height="4" rx="0.5"/><rect x="10" y="17" width="5" height="4" rx="0.5"/><rect x="17" y="17" width="4" height="4" rx="0.5"/></svg>
@@ -59,18 +79,31 @@ const ACCOUNT_SUB_NAV = [
 const DEFAULT_LEVEL = { tierLabel: "Tier 1: Bronze", progressPercent: 0 };
 
 export default function AccountSettings() {
+  const location = useLocation();
+  const accountPath = location.pathname.startsWith("/buyer") ? "/buyer/account" : "/seller/account";
   const { fullName, initials } = getFullNameAndInitials();
   const [activeSub, setActiveSub] = useState("profile");
-  const [formFullName, setFormFullName] = useState(() =>
-    typeof window !== "undefined" ? (localStorage.getItem("ecoloop_fullName") || "") : ""
-  );
-  const [email, setEmail] = useState("john.doe@greentech.com");
-  const [phone, setPhone] = useState("+234 801 234 5678");
+  const [formFullName, setFormFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [bio, setBio] = useState("");
   const [language, setLanguage] = useState("English");
   const [timezone, setTimezone] = useState("UTC+1 (WAT)");
   const [currency, setCurrency] = useState("NGN");
   const [producerLevel, setProducerLevel] = useState(DEFAULT_LEVEL);
+  const [saveMessage, setSaveMessage] = useState("");
+
+  useEffect(() => {
+    const user = getAuthUser();
+    const stored = getStoredProfile();
+    setFormFullName(user?.name ?? localStorage.getItem("ecoloop_fullName") ?? "");
+    setEmail(user?.email ?? stored.email ?? "");
+    setPhone(stored.phone ?? "");
+    setBio(stored.bio ?? "");
+    if (stored.language) setLanguage(stored.language);
+    if (stored.timezone) setTimezone(stored.timezone);
+    if (stored.currency) setCurrency(stored.currency);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -89,7 +122,19 @@ export default function AccountSettings() {
 
   const handleSave = (e) => {
     e.preventDefault();
-    if (formFullName.trim()) localStorage.setItem("ecoloop_fullName", formFullName.trim());
+    const name = formFullName.trim();
+    const emailVal = email.trim();
+    updateStoredUserProfile({ name: name || undefined, email: emailVal || undefined });
+    if (name) localStorage.setItem("ecoloop_fullName", name);
+    setStoredProfile({
+      phone: phone.trim(),
+      bio: bio.trim(),
+      language,
+      timezone,
+      currency,
+    });
+    setSaveMessage("Profile updated successfully.");
+    setTimeout(() => setSaveMessage(""), 4000);
   };
 
   return (
@@ -125,8 +170,12 @@ export default function AccountSettings() {
       </aside>
 
       <div className="seller-main-wrap">
-        <header className="seller-topbar producer-dashboard-topbar">
-          <p className="seller-topbar-subtitle" />
+        <header className="seller-topbar producer-dashboard-topbar seller-topbar-with-breadcrumb">
+          <nav className="breadcrumb" aria-label="Breadcrumb">
+            <Link to={location.pathname.startsWith("/buyer") ? "/buyer/dashboard" : "/seller/dashboard"}>Dashboard</Link>
+            <span className="breadcrumb-sep">&gt;</span>
+            <span className="breadcrumb-current">Account Settings</span>
+          </nav>
           <div className="seller-topbar-right">
             <button type="button" className="seller-topbar-icon-btn" aria-label="Notifications">
               <IconBell />
@@ -135,7 +184,7 @@ export default function AccountSettings() {
               <span className="seller-topbar-user-name">{fullName}</span>
               <span className="seller-topbar-user-role">Waste Producer</span>
             </div>
-            <Avatar variant="seller-topbar" />
+            <AvatarMenu accountPath={accountPath} variant="seller-topbar" />
           </div>
         </header>
 
@@ -159,12 +208,17 @@ export default function AccountSettings() {
             </nav>
 
             <div className="account-settings-panel">
+              {saveMessage && (
+                <p className="account-settings-save-msg" role="status">
+                  {saveMessage}
+                </p>
+              )}
               <form className="account-settings-form" onSubmit={handleSave}>
                 <section className="account-settings-section">
                   <h2 className="account-settings-section-title">Personal Information</h2>
                   <div className="account-settings-profile-row">
                     <div className="account-settings-avatar-wrap">
-                      <Avatar variant="account-settings" />
+                      <Avatar variant="seller-topbar" className="account-settings-profile-avatar" />
                       <span className="account-settings-avatar-camera" aria-hidden="true">
                         <IconCameraSmall />
                       </span>
@@ -284,7 +338,9 @@ export default function AccountSettings() {
                 </section>
 
                 <div className="account-settings-actions">
-                  <button type="submit" className="account-settings-btn-save">Save Changes</button>
+                  <button type="submit" className="account-settings-btn-save">
+                    Save Changes
+                  </button>
                 </div>
               </form>
             </div>

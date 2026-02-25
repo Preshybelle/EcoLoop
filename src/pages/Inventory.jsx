@@ -1,5 +1,34 @@
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import ecoLoopLogo from "../assets/brand/ecoloop-logo.png";
+import { getListings } from "../services/listingsApi";
+import AvatarMenu from "../components/AvatarMenu";
+import { STORAGE_KEYS } from "../utils/environmentalImpact";
+
+const DRAFTS_STORAGE_KEY = "ecoloop_inventory_drafts";
+const NOTES_STORAGE_KEY = "ecoloop_create_listing_notes";
+const ALLOW_NEGOTIATION_KEY = "ecoloop_create_listing_allow_negotiation";
+const CO2_KG_PER_TON = 500;
+
+/** Restore draft data to sessionStorage so the Review page shows the draft when we navigate there. */
+function restoreDraftToSessionStorage(draft) {
+  if (typeof sessionStorage === "undefined") return;
+  sessionStorage.setItem(STORAGE_KEYS.quantity, draft.quantity ?? String(draft.quantityTons ?? "5"));
+  sessionStorage.setItem(STORAGE_KEYS.unit, draft.unit ?? "tons");
+  sessionStorage.setItem(STORAGE_KEYS.materialType, draft.materialType ?? "PLASTIC");
+  sessionStorage.setItem(ALLOW_NEGOTIATION_KEY, draft.allowNegotiation ? "true" : "false");
+  sessionStorage.setItem(NOTES_STORAGE_KEY, draft.description ?? "");
+}
+
+function getSavedDrafts() {
+  if (typeof localStorage === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(DRAFTS_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
 
 function getFullNameAndInitials() {
   const fullName = typeof window !== "undefined" ? (localStorage.getItem("ecoloop_fullName") || "Producer") : "Producer";
@@ -61,25 +90,133 @@ const IconEllipsisV = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
 );
 
-const INVENTORY_TABS = [
-  { id: "all", label: "All Items", count: 6, active: true },
-  { id: "active", label: "Active Listings", count: 3 },
-  { id: "drafts", label: "Saved Drafts", count: 1 },
-  { id: "pending", label: "Pending Sales", count: 1 },
-  { id: "completed", label: "Completed", count: 1 },
-];
+function listingToCard(listing, img) {
+  const status = (listing.status || "ACTIVE").toUpperCase();
+  let displayStatus = "Active";
+  if (status === "DRAFT" || status === "PENDING") displayStatus = status === "DRAFT" ? "Draft" : "Pending";
+  else if (status === "SOLD" || status === "COMPLETED") displayStatus = status === "SOLD" ? "Completed" : "Completed";
 
-const INVENTORY_ITEMS = [
-  { name: "Steel Scrap", status: "Active", weight: "500kg", price: "15,000", location: "Industrial Zone, Manila", listed: "Feb 10, 2026", views: 24, co2: "125 kg CO2", img: steelScrapImg },
-  { name: "HDPE Plastic", status: "Active", weight: "200 kg", price: "8,000", location: "Makati Business District", listed: "Feb 12, 2026", views: 18, co2: "80 kg CO2", img: hdpePlasticImg },
-  { name: "Cardboard Boxes", status: "Draft", weight: "150 kg", price: "3,000", location: "Quezon City Warehouse", listed: "Feb 13, 2026", views: 0, co2: "125 kg CO2", img: cardboardBoxesImg },
-  { name: "Wood Pallets", status: "Active", weight: "80 kg", price: "12,000", location: "Pasig Logistics Hub", listed: "Feb 8, 2026", views: 32, co2: "200 kg CO2", img: woodPalletsImg },
-  { name: "Glass Bottles", status: "Active", weight: "300 kg", price: "5,000", location: "BGC Commercial Area", listed: "Feb 5, 2026", views: 145, co2: "90 kg CO2", img: glassBottlesImg },
-  { name: "E-Waste Components", status: "Draft", weight: "120 kg", price: "7,000", location: "Taguig tech pack", listed: "Feb 11, 2026", views: 15, co2: "100 kg CO2", img: cardboardBoxesImg },
-];
+  const title = listing.title || listing.name || "—";
+  const quantity = listing.quantity ?? listing.totalWeight ?? listing.weight;
+  const weightStr = typeof quantity === "number" ? `${quantity} kg` : (quantity || "—");
+  const priceNum = Number(listing.price) ?? 0;
+  const priceStr = priceNum >= 1000 ? (priceNum / 1000).toFixed(0) + "K" : String(priceNum);
+  const location = listing.location ?? listing.state ?? "—";
+  const listed = listing.createdAt || listing.listedAt || listing.listed;
+  const listedStr = listed ? new Date(listed).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
+  const views = listing.views ?? listing.viewCount ?? 0;
+  const tons = Number(listing.quantity) || (listing.totalWeight ? listing.totalWeight / 1000 : 0) || 0;
+  const co2Kg = Math.round(tons * CO2_KG_PER_TON);
+  const co2Str = co2Kg >= 1000 ? `${(co2Kg / 1000).toFixed(1)} Tons CO₂` : `${co2Kg} kg CO₂`;
+
+  return {
+    id: listing.id,
+    name: title,
+    status: displayStatus,
+    weight: weightStr,
+    price: priceStr,
+    location,
+    listed: listedStr,
+    views,
+    co2: co2Str,
+    img: listing.imageUrl || img,
+    isDraft: false,
+  };
+}
+
+function draftToCard(draft, img) {
+  const savedAt = draft.savedAt ? new Date(draft.savedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
+  const tons = Number(draft.quantityTons) || 0;
+  const co2Kg = Math.round(tons * CO2_KG_PER_TON);
+  const co2Str = co2Kg >= 1000 ? `${(co2Kg / 1000).toFixed(1)} Tons CO₂` : `${co2Kg} kg CO₂`;
+  const priceNum = Number(draft.price) || 0;
+  const priceStr = priceNum >= 1000 ? (priceNum / 1000).toFixed(0) + "K" : String(priceNum);
+  return {
+    id: draft.id,
+    name: draft.title || "Draft listing",
+    status: "Draft",
+    weight: draft.quantityDisplay || "—",
+    price: priceStr,
+    location: "—",
+    listed: savedAt,
+    views: 0,
+    co2: co2Str,
+    img,
+    isDraft: true,
+  };
+}
 
 export default function Inventory() {
+  const navigate = useNavigate();
   const { fullName, initials } = getFullNameAndInitials();
+  const [listings, setListings] = useState([]);
+  const [drafts, setDrafts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [activeTab, setActiveTab] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const handleEditDraft = (draftId) => {
+    const rawDraft = drafts.find((d) => d.id === draftId);
+    if (!rawDraft) return;
+    restoreDraftToSessionStorage(rawDraft);
+    navigate("/seller/create-listing/review");
+  };
+
+  useEffect(() => {
+    setDrafts(getSavedDrafts());
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const token = typeof window !== "undefined" && window.localStorage && window.localStorage.getItem("ecoloop_token");
+    if (!token) {
+      setListings([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    getListings()
+      .then((res) => {
+        if (cancelled) return;
+        setListings(res.listings || []);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load listings");
+          setListings([]);
+        }
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const publishedCards = listings.map((l) => listingToCard(l, hdpePlasticImg));
+  const draftCards = drafts.map((d) => draftToCard(d, cardboardBoxesImg));
+  const allItems = [...publishedCards, ...draftCards];
+
+  const filteredByTab = allItems.filter((item) => {
+    if (activeTab === "all") return true;
+    if (activeTab === "drafts") return item.isDraft;
+    if (activeTab === "active") return item.status === "Active";
+    if (activeTab === "pending") return item.status === "Pending";
+    if (activeTab === "completed") return item.status === "Completed";
+    return true;
+  });
+
+  const searchLower = searchQuery.trim().toLowerCase();
+  const filteredItems = searchLower
+    ? filteredByTab.filter((item) => item.name.toLowerCase().includes(searchLower) || (item.location && item.location.toLowerCase().includes(searchLower)))
+    : filteredByTab;
+
+  const tabCounts = {
+    all: allItems.length,
+    active: allItems.filter((i) => i.status === "Active").length,
+    drafts: draftCards.length,
+    pending: allItems.filter((i) => i.status === "Pending").length,
+    completed: allItems.filter((i) => i.status === "Completed").length,
+  };
+
   return (
     <div className="seller-layout producer-dashboard-layout">
       <aside className="producer-sidebar inventory-sidebar">
@@ -106,8 +243,12 @@ export default function Inventory() {
       </aside>
 
       <div className="seller-main-wrap">
-        <header className="seller-topbar producer-dashboard-topbar">
-          <p className="seller-topbar-subtitle" />
+        <header className="seller-topbar producer-dashboard-topbar seller-topbar-with-breadcrumb">
+          <nav className="breadcrumb" aria-label="Breadcrumb">
+            <Link to="/seller/dashboard">Dashboard</Link>
+            <span className="breadcrumb-sep">&gt;</span>
+            <span className="breadcrumb-current">Inventory</span>
+          </nav>
           <div className="seller-topbar-right">
             <button type="button" className="seller-topbar-icon-btn" aria-label="Notifications">
               <IconBell />
@@ -115,7 +256,7 @@ export default function Inventory() {
             <div className="seller-topbar-user">
               <span className="seller-topbar-user-name">{fullName}</span>
             </div>
-            <div className="seller-topbar-avatar seller-topbar-avatar-initials inventory-avatar" aria-hidden="true">{initials}</div>
+            <AvatarMenu accountPath="/seller/account" variant="seller-topbar" className="inventory-avatar" />
           </div>
         </header>
 
@@ -126,29 +267,77 @@ export default function Inventory() {
           <div className="inventory-toolbar">
             <div className="inventory-search-wrap">
               <IconSearch />
-              <input type="search" className="inventory-search-input" placeholder="Search by material or location..." aria-label="Search" />
+              <input
+                type="search"
+                className="inventory-search-input"
+                placeholder="Search by material or location..."
+                aria-label="Search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
             <button type="button" className="inventory-filters-btn">
               <IconFilter /> More Filters
             </button>
           </div>
 
+          {error && (
+            <div className="register-form-errors" role="alert" style={{ marginBottom: "1rem" }}>
+              {error}
+            </div>
+          )}
+
           <div className="inventory-tabs">
-            {INVENTORY_TABS.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                className={`inventory-tab ${tab.active ? "inventory-tab-active" : ""}`}
-              >
-                {tab.label}
-                <span className={`inventory-tab-badge ${tab.active ? "inventory-tab-badge-active" : ""}`}>{tab.count}</span>
-              </button>
-            ))}
+            <button
+              type="button"
+              className={`inventory-tab ${activeTab === "all" ? "inventory-tab-active" : ""}`}
+              onClick={() => setActiveTab("all")}
+            >
+              All Items
+              <span className={`inventory-tab-badge ${activeTab === "all" ? "inventory-tab-badge-active" : ""}`}>{tabCounts.all}</span>
+            </button>
+            <button
+              type="button"
+              className={`inventory-tab ${activeTab === "active" ? "inventory-tab-active" : ""}`}
+              onClick={() => setActiveTab("active")}
+            >
+              Active Listings
+              <span className={`inventory-tab-badge ${activeTab === "active" ? "inventory-tab-badge-active" : ""}`}>{tabCounts.active}</span>
+            </button>
+            <button
+              type="button"
+              className={`inventory-tab ${activeTab === "drafts" ? "inventory-tab-active" : ""}`}
+              onClick={() => setActiveTab("drafts")}
+            >
+              Saved Drafts
+              <span className={`inventory-tab-badge ${activeTab === "drafts" ? "inventory-tab-badge-active" : ""}`}>{tabCounts.drafts}</span>
+            </button>
+            <button
+              type="button"
+              className={`inventory-tab ${activeTab === "pending" ? "inventory-tab-active" : ""}`}
+              onClick={() => setActiveTab("pending")}
+            >
+              Pending Sales
+              <span className={`inventory-tab-badge ${activeTab === "pending" ? "inventory-tab-badge-active" : ""}`}>{tabCounts.pending}</span>
+            </button>
+            <button
+              type="button"
+              className={`inventory-tab ${activeTab === "completed" ? "inventory-tab-active" : ""}`}
+              onClick={() => setActiveTab("completed")}
+            >
+              Completed
+              <span className={`inventory-tab-badge ${activeTab === "completed" ? "inventory-tab-badge-active" : ""}`}>{tabCounts.completed}</span>
+            </button>
           </div>
 
+          {loading ? (
+            <p className="inventory-subtitle">Loading inventory…</p>
+          ) : filteredItems.length === 0 ? (
+            <p className="inventory-subtitle">No items match this filter. Publish listings from Create Listing or save drafts on the Review page.</p>
+          ) : (
           <div className="inventory-grid">
-            {INVENTORY_ITEMS.map((item, i) => (
-              <article key={i} className="inventory-card">
+            {filteredItems.map((item) => (
+              <article key={item.id} className="inventory-card">
                 <div className="inventory-card-image-wrap">
                   <img src={item.img} alt={item.name} className="inventory-card-image" />
                   <span className={`inventory-card-status inventory-card-status-${item.status.toLowerCase()}`}>{item.status}</span>
@@ -159,17 +348,27 @@ export default function Inventory() {
                     <button type="button" className="inventory-card-menu" aria-label="Options"><IconEllipsisV /></button>
                   </div>
                   <div className="inventory-card-weight">{item.weight}</div>
-                  <div className="inventory-card-price">P{item.price}</div>
+                  <div className="inventory-card-price">₦{item.price}</div>
                   <div className="inventory-card-meta">
                     <span className="inventory-card-meta-item"><IconMapPin /> {item.location}</span>
-                    <span className="inventory-card-meta-item"><IconCalendar /> Listed {item.listed}</span>
+                    <span className="inventory-card-meta-item"><IconCalendar /> {item.isDraft ? "Saved" : "Listed"} {item.listed}</span>
                     <span className="inventory-card-meta-item"><IconEye /> {item.views} views</span>
                     <span className="inventory-card-meta-item"><IconCO2 /> {item.co2}</span>
                   </div>
+                  {item.isDraft && (
+                    <button
+                      type="button"
+                      className="inventory-card-edit-draft"
+                      onClick={() => handleEditDraft(item.id)}
+                    >
+                      Continue editing
+                    </button>
+                  )}
                 </div>
               </article>
             ))}
           </div>
+          )}
         </main>
       </div>
     </div>

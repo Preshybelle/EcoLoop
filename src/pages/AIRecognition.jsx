@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import ecoLoopLogo from "../assets/brand/ecoloop-logo.png";
+import AvatarMenu from "../components/AvatarMenu";
 import placeholderBottle from "../assets/inventory/hdpe-plastic.png";
 import { scanMaterialImage } from "../services/scanApi";
 
@@ -160,20 +161,20 @@ export default function AIRecognition() {
       </aside>
 
       <div className="marketplace-main ai-recognition-main">
-        <header className="ai-recognition-topbar">
-          <nav className="ai-recognition-breadcrumb" aria-label="Breadcrumb">
-            <Link to="/">Home</Link>
-            <span className="ai-recognition-breadcrumb-sep">&gt;</span>
-            <span className="ai-recognition-breadcrumb-current">AI Recognition</span>
+        <header className="seller-topbar seller-topbar-gray seller-topbar-with-breadcrumb">
+          <nav className="breadcrumb" aria-label="Breadcrumb">
+            <Link to="/listings">Marketplace</Link>
+            <span className="breadcrumb-sep">&gt;</span>
+            <span className="breadcrumb-current">AI Recognition</span>
           </nav>
-          <div className="ai-recognition-topbar-right">
-            <button type="button" className="ai-recognition-icon-btn" aria-label="Notifications">
+          <div className="seller-topbar-right">
+            <button type="button" className="seller-topbar-icon-btn" aria-label="Notifications">
               <IconBell />
             </button>
-            <div className="ai-recognition-user">
-              <span className="ai-recognition-user-name">{fullName}</span>
+            <div className="seller-topbar-user">
+              <span className="seller-topbar-user-name">{fullName}</span>
             </div>
-            <div className="marketplace-avatar marketplace-avatar-orange" aria-hidden="true">{initials}</div>
+            <AvatarMenu accountPath="/seller/account" variant="seller-topbar" />
           </div>
         </header>
 

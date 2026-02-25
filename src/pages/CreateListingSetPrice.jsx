@@ -1,5 +1,8 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import ecoLoopLogo from "../assets/brand/ecoloop-logo.png";
+
+const ALLOW_NEGOTIATION_KEY = "ecoloop_create_listing_allow_negotiation";
 
 const IconGrid = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
@@ -56,6 +59,17 @@ const STEPS = [
 ];
 
 export default function CreateListingSetPrice() {
+  const [allowNegotiation, setAllowNegotiation] = useState(() => {
+    if (typeof sessionStorage === "undefined") return false;
+    return sessionStorage.getItem(ALLOW_NEGOTIATION_KEY) === "true";
+  });
+
+  useEffect(() => {
+    if (typeof sessionStorage !== "undefined") {
+      sessionStorage.setItem(ALLOW_NEGOTIATION_KEY, allowNegotiation ? "true" : "false");
+    }
+  }, [allowNegotiation]);
+
   return (
     <div className="seller-layout seller-layout-create">
       <aside className="seller-sidebar seller-sidebar-white">
@@ -85,7 +99,9 @@ export default function CreateListingSetPrice() {
           <nav className="breadcrumb" aria-label="Breadcrumb">
             <Link to="/listings">Marketplace</Link>
             <span className="breadcrumb-sep">&gt;</span>
-            <span className="breadcrumb-current">New Listing</span>
+            <Link to="/seller/create-listing">New Listing</Link>
+            <span className="breadcrumb-sep">&gt;</span>
+            <span className="breadcrumb-current">Set Price</span>
           </nav>
           <div className="seller-topbar-right">
             <button type="button" className="seller-topbar-icon-btn" aria-label="Notifications">
@@ -161,7 +177,13 @@ export default function CreateListingSetPrice() {
             </div>
             <p className="material-details-hint set-price-hint">You can also accept bids by setting this as a &quot;Starting Price&quot;.</p>
             <label className="set-price-checkbox-wrap">
-              <input type="checkbox" className="set-price-checkbox" />
+              <input
+                type="checkbox"
+                className="set-price-checkbox"
+                checked={allowNegotiation}
+                onChange={(e) => setAllowNegotiation(e.target.checked)}
+                aria-label="Allow potential buyers to negotiate or send counter-offers"
+              />
               <span className="set-price-checkbox-label">Allow potential buyers to negotiate or send counter-offers</span>
             </label>
           </div>

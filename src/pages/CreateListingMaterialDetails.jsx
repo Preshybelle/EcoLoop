@@ -1,5 +1,8 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import ecoLoopLogo from "../assets/brand/ecoloop-logo.png";
+import { STORAGE_KEYS } from "../utils/environmentalImpact";
+import AvatarMenu from "../components/AvatarMenu";
 
 function getFullNameAndInitials() {
   const fullName = typeof window !== "undefined" ? (localStorage.getItem("ecoloop_fullName") || "Producer") : "Producer";
@@ -51,6 +54,32 @@ const STEPS = [
 
 export default function CreateListingMaterialDetails() {
   const { fullName, initials } = getFullNameAndInitials();
+  const [materialType, setMaterialType] = useState(() =>
+    typeof sessionStorage !== "undefined" ? sessionStorage.getItem(STORAGE_KEYS.materialType) || "" : ""
+  );
+  const [quantity, setQuantity] = useState(() =>
+    typeof sessionStorage !== "undefined" ? sessionStorage.getItem(STORAGE_KEYS.quantity) || "" : ""
+  );
+  const [unit, setUnit] = useState(() =>
+    typeof sessionStorage !== "undefined" ? sessionStorage.getItem(STORAGE_KEYS.unit) || "tons" : "tons"
+  );
+
+  useEffect(() => {
+    if (typeof sessionStorage !== "undefined") {
+      if (materialType !== undefined) sessionStorage.setItem(STORAGE_KEYS.materialType, materialType);
+    }
+  }, [materialType]);
+  useEffect(() => {
+    if (typeof sessionStorage !== "undefined") {
+      if (quantity !== undefined) sessionStorage.setItem(STORAGE_KEYS.quantity, quantity);
+    }
+  }, [quantity]);
+  useEffect(() => {
+    if (typeof sessionStorage !== "undefined") {
+      if (unit !== undefined) sessionStorage.setItem(STORAGE_KEYS.unit, unit);
+    }
+  }, [unit]);
+
   return (
     <div className="seller-layout seller-layout-create">
       <aside className="seller-sidebar seller-sidebar-white seller-sidebar-with-plan">
@@ -87,7 +116,9 @@ export default function CreateListingMaterialDetails() {
           <nav className="breadcrumb" aria-label="Breadcrumb">
             <Link to="/listings">Marketplace</Link>
             <span className="breadcrumb-sep">&gt;</span>
-            <span className="breadcrumb-current">New Listing</span>
+            <Link to="/seller/create-listing">New Listing</Link>
+            <span className="breadcrumb-sep">&gt;</span>
+            <span className="breadcrumb-current">Material Details</span>
           </nav>
           <div className="seller-topbar-right">
             <button type="button" className="seller-topbar-icon-btn" aria-label="Notifications">
@@ -96,7 +127,7 @@ export default function CreateListingMaterialDetails() {
             <div className="seller-topbar-user">
               <span className="seller-topbar-user-name">{fullName}</span>
             </div>
-            <div className="seller-topbar-avatar seller-topbar-avatar-initials" aria-hidden="true">{initials}</div>
+            <AvatarMenu accountPath="/seller/account" variant="seller-topbar" />
           </div>
         </header>
 
@@ -157,6 +188,8 @@ export default function CreateListingMaterialDetails() {
                 className="material-details-input"
                 placeholder="e.g., Polyethylene (PE)"
                 aria-label="Material type"
+                value={materialType}
+                onChange={(e) => setMaterialType(e.target.value)}
               />
             </div>
             <div className="material-details-field">
@@ -167,10 +200,18 @@ export default function CreateListingMaterialDetails() {
                   className="material-details-input"
                   placeholder="e.g., 500"
                   aria-label="Quantity available"
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value)}
                 />
                 <div className="material-details-select-wrap material-details-unit-wrap">
-                  <select className="material-details-select material-details-unit-select" aria-label="Unit">
-                    <option>tons</option>
+                  <select
+                    className="material-details-select material-details-unit-select"
+                    aria-label="Unit"
+                    value={unit}
+                    onChange={(e) => setUnit(e.target.value)}
+                  >
+                    <option value="kg">kg</option>
+                    <option value="tons">tons</option>
                   </select>
                   <IconChevronDown />
                 </div>

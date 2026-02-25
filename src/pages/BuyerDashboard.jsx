@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import ecoLoopLogo from "../assets/brand/ecoloop-logo.png";
+import AvatarMenu from "../components/AvatarMenu";
 
 const IconGrid = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
@@ -121,10 +122,21 @@ export default function BuyerDashboard() {
       </aside>
 
       <div className="buyer-main">
-        <div className="buyer-search-wrap">
-          <IconSearch />
-          <input type="search" placeholder="Search listings, materials, or orders..." className="buyer-search-input" aria-label="Search" />
-        </div>
+        <header className="seller-topbar seller-topbar-gray seller-topbar-with-breadcrumb buyer-dashboard-topbar">
+          <nav className="breadcrumb" aria-label="Breadcrumb">
+            <span className="breadcrumb-current">Dashboard</span>
+          </nav>
+          <div className="seller-topbar-right">
+            <div className="buyer-search-wrap buyer-search-in-topbar">
+              <IconSearch />
+              <input type="search" placeholder="Search listings, materials, or orders..." className="buyer-search-input" aria-label="Search" />
+            </div>
+            <div className="seller-topbar-user">
+              <span className="seller-topbar-user-name">{typeof window !== "undefined" ? (localStorage.getItem("ecoloop_fullName") || "Buyer") : "Buyer"}</span>
+            </div>
+            <AvatarMenu accountPath="/buyer/account" variant="seller-topbar" />
+          </div>
+        </header>
 
         <div className="buyer-stats">
           <div className="buyer-stat-card">

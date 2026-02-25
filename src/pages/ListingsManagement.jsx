@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import ecoLoopLogo from "../assets/brand/ecoloop-logo.png";
 import { getListings } from "../services/listingsApi";
-import Avatar from "../components/Avatar";
+import AvatarMenu from "../components/AvatarMenu";
 
 const IconGrid = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
@@ -172,8 +172,12 @@ export default function ListingsManagement() {
       </aside>
 
       <div className="seller-main-wrap">
-        <header className="seller-topbar">
-          <p className="seller-topbar-subtitle">Listings Management</p>
+        <header className="seller-topbar seller-topbar-gray seller-topbar-with-breadcrumb">
+          <nav className="breadcrumb" aria-label="Breadcrumb">
+            <Link to="/marketplace">Marketplace</Link>
+            <span className="breadcrumb-sep">&gt;</span>
+            <span className="breadcrumb-current">Listings</span>
+          </nav>
           <div className="seller-topbar-right">
             <button type="button" className="seller-topbar-icon-btn" aria-label="Notifications">
               <IconBell />
@@ -182,7 +186,7 @@ export default function ListingsManagement() {
               <span className="seller-topbar-company-name">Industrial Recycle Co.</span>
               <span className="seller-topbar-badge">Premium Partner</span>
             </div>
-            <Avatar variant="seller-topbar" />
+            <AvatarMenu accountPath="/seller/account" variant="seller-topbar" />
           </div>
         </header>
 
