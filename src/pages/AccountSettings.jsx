@@ -5,6 +5,7 @@ import { getListings } from "../services/listingsApi";
 import { getProducerLevelFromListings } from "../utils/producerLevel";
 import { getFullNameAndInitials } from "../utils/userDisplay";
 import { getAuthUser, updateStoredUserProfile } from "../utils/auth";
+import { PROFILE_UPDATED } from "../utils/successMessages";
 import Avatar from "../components/Avatar";
 import AvatarMenu from "../components/AvatarMenu";
 
@@ -133,7 +134,7 @@ export default function AccountSettings() {
       timezone,
       currency,
     });
-    setSaveMessage("Profile updated successfully.");
+    setSaveMessage(PROFILE_UPDATED);
     setTimeout(() => setSaveMessage(""), 4000);
   };
 

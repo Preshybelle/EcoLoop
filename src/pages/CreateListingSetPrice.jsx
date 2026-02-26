@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import ecoLoopLogo from "../assets/brand/ecoloop-logo.png";
 
 const ALLOW_NEGOTIATION_KEY = "ecoloop_create_listing_allow_negotiation";
+const PRICE_STORAGE_KEY = "ecoloop_create_listing_price";
 
 const IconGrid = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
@@ -63,12 +64,21 @@ export default function CreateListingSetPrice() {
     if (typeof sessionStorage === "undefined") return false;
     return sessionStorage.getItem(ALLOW_NEGOTIATION_KEY) === "true";
   });
+  const [price, setPrice] = useState(() => {
+    if (typeof sessionStorage === "undefined") return "165000";
+    return sessionStorage.getItem(PRICE_STORAGE_KEY) || "165000";
+  });
 
   useEffect(() => {
     if (typeof sessionStorage !== "undefined") {
       sessionStorage.setItem(ALLOW_NEGOTIATION_KEY, allowNegotiation ? "true" : "false");
     }
   }, [allowNegotiation]);
+  useEffect(() => {
+    if (typeof sessionStorage !== "undefined" && price !== "") {
+      sessionStorage.setItem(PRICE_STORAGE_KEY, price);
+    }
+  }, [price]);
 
   return (
     <div className="seller-layout seller-layout-create">
@@ -165,7 +175,8 @@ export default function CreateListingSetPrice() {
                 type="text"
                 className="set-price-input"
                 placeholder="0.00"
-                defaultValue="0.00"
+                value={price}
+                onChange={(e) => setPrice(e.target.value.replace(/[^0-9.]/g, "") || "")}
                 aria-label="Asking price"
               />
               <div className="material-details-select-wrap set-price-unit-wrap">

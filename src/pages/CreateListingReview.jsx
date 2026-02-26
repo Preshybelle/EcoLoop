@@ -11,6 +11,7 @@ import {
   getRecyclabilityPercent,
   STORAGE_KEYS,
 } from "../utils/environmentalImpact";
+import { DRAFT_SAVED } from "../utils/successMessages";
 
 function getFullNameAndInitials() {
   const fullName = typeof window !== "undefined" ? (localStorage.getItem("ecoloop_fullName") || "Producer") : "Producer";
@@ -160,6 +161,12 @@ export default function CreateListingReview() {
     ? `${quantityTons.toFixed(1)} Tons`
     : `${Math.round(quantityTons * 1000)} kg`;
 
+  const priceFromStorage = typeof sessionStorage !== "undefined"
+    ? parseFloat(String(sessionStorage.getItem("ecoloop_create_listing_price") || "").replace(/[^0-9.]/g, "")) || 165000
+    : 165000;
+  const weightKg = Math.round(quantityTons * 1000) || 5000;
+  const titleFromFlow = materialType ? `${materialType.trim() || "Material"} Scrap` : "Grade A Plastic Scrap";
+
   /** Publish listing to the marketplace only when the user clicks "Publish Listing". No auto-publish on load or navigation. */
   const handlePublish = async (e) => {
     e.preventDefault();
@@ -168,11 +175,12 @@ export default function CreateListingReview() {
     try {
       const image = typeof sessionStorage !== "undefined" ? sessionStorage.getItem("ecoloop_create_listing_upload") : null;
       const allowNegotiation = typeof sessionStorage !== "undefined" && sessionStorage.getItem("ecoloop_create_listing_allow_negotiation") === "true";
-      const title = "Grade A Plastic Scrap";
+      const title = titleFromFlow;
       const description = specialInstructions;
-      const price = 165000;
+      const price = priceFromStorage;
       const currency = "NGN";
       const state = "lagos";
+      const materialTypeStr = (materialType || "PLASTIC").trim().toUpperCase();
 
       let data;
       if (image && image.startsWith("data:")) {
@@ -181,8 +189,8 @@ export default function CreateListingReview() {
         data = await createListingManual({
           title,
           description,
-          materialType: "PLASTIC",
-          weight: 5,
+          materialType: materialTypeStr,
+          weight: weightKg,
           price,
           currency,
           state,
@@ -269,7 +277,7 @@ export default function CreateListingReview() {
           )}
           {draftSaved && (
             <p className="review-draft-saved-msg" role="status">
-              Draft saved. You can continue later from Create Listing.
+              {DRAFT_SAVED}
             </p>
           )}
           <div className="review-progress-row">

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import ecoLoopLogo from "../assets/brand/ecoloop-logo.png";
 import AvatarMenu from "../components/AvatarMenu";
@@ -13,9 +14,6 @@ const IconMessage = () => (
 );
 const IconOrder = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
-);
-const IconGear = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
 );
 const IconUser = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -83,7 +81,29 @@ const COMPARISON_MATERIALS = [
   { name: "Glass", recycled: 12, virgin: 22 },
 ];
 
+function matchesSearch(query, ...values) {
+  const q = (query || "").trim().toLowerCase();
+  if (!q) return true;
+  return values.some((v) => String(v || "").toLowerCase().includes(q));
+}
+
+const TAB_OVERVIEW = "overview";
+const TAB_PICKUP_ROUTE = "pickup-route";
+
 export default function BuyerDashboard() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState(TAB_OVERVIEW);
+
+  const filteredPickups = PENDING_PICKUPS.filter((row) =>
+    matchesSearch(searchQuery, row.material, row.quantity, row.seller, row.location)
+  );
+  const filteredRecommended = RECOMMENDED.filter((item) =>
+    matchesSearch(searchQuery, item.title, item.qty, item.price, item.seller, item.location, item.co2)
+  );
+  const filteredComparison = COMPARISON_MATERIALS.filter((m) =>
+    matchesSearch(searchQuery, m.name)
+  );
+
   return (
     <div className="buyer-layout">
       <aside className="buyer-sidebar">
@@ -104,10 +124,7 @@ export default function BuyerDashboard() {
             <IconOrder /> <span>Order</span>
           </Link>
           <Link to="/buyer/account" className="buyer-nav-item">
-            <IconGear /> <span>Setting</span>
-          </Link>
-          <Link to="/buyer/account" className="buyer-nav-item">
-            <IconUser /> <span>Account</span>
+            <IconUser /> <span>Account Settings</span>
           </Link>
         </nav>
         <div className="buyer-progress">
@@ -129,7 +146,14 @@ export default function BuyerDashboard() {
           <div className="seller-topbar-right">
             <div className="buyer-search-wrap buyer-search-in-topbar">
               <IconSearch />
-              <input type="search" placeholder="Search listings, materials, or orders..." className="buyer-search-input" aria-label="Search" />
+              <input
+                type="search"
+                placeholder="Search listings, materials, or orders..."
+                className="buyer-search-input"
+                aria-label="Search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
             <div className="seller-topbar-user">
               <span className="seller-topbar-user-name">{typeof window !== "undefined" ? (localStorage.getItem("ecoloop_fullName") || "Buyer") : "Buyer"}</span>
@@ -139,24 +163,24 @@ export default function BuyerDashboard() {
         </header>
 
         <div className="buyer-stats">
-          <div className="buyer-stat-card">
+          <Link to="/buyer/orders" className="buyer-stat-card buyer-stat-card-link">
             <div className="buyer-stat-icon buyer-stat-icon-blue">
               <IconDoc />
               <span className="buyer-stat-badge buyer-stat-badge-down">-1</span>
             </div>
             <div className="buyer-stat-title">Active Orders</div>
-            <div className="buyer-stat-value">08</div>
+            <div className="buyer-stat-value">{String(PENDING_PICKUPS.length).padStart(2, "0")}</div>
             <div className="buyer-stat-meta">pending</div>
-          </div>
-          <div className="buyer-stat-card">
+          </Link>
+          <Link to="/buyer/orders" className="buyer-stat-card buyer-stat-card-link">
             <div className="buyer-stat-icon buyer-stat-icon-green">
               <IconDollar />
               <span className="buyer-stat-badge buyer-stat-badge-up">+12%</span>
             </div>
             <div className="buyer-stat-title">Total Spend</div>
             <div className="buyer-stat-value">P112,500</div>
-          </div>
-          <div className="buyer-stat-card">
+          </Link>
+          <Link to="/marketplace" className="buyer-stat-card buyer-stat-card-link">
             <div className="buyer-stat-icon buyer-stat-icon-purple">
               <IconGlobe />
               <span className="buyer-stat-badge buyer-stat-badge-up">+0.2t</span>
@@ -164,8 +188,8 @@ export default function BuyerDashboard() {
             <div className="buyer-stat-title">Materials Acquired</div>
             <div className="buyer-stat-value">18.7</div>
             <div className="buyer-stat-meta">tons</div>
-          </div>
-          <div className="buyer-stat-card">
+          </Link>
+          <Link to="/buyer/dashboard#sustainability" className="buyer-stat-card buyer-stat-card-link">
             <div className="buyer-stat-icon buyer-stat-icon-leaf">
               <IconLeaf />
               <span className="buyer-stat-badge buyer-stat-badge-up">+850kg</span>
@@ -173,16 +197,28 @@ export default function BuyerDashboard() {
             <div className="buyer-stat-title">CO2 Impact</div>
             <div className="buyer-stat-value">4.2</div>
             <div className="buyer-stat-meta">tons saved</div>
-          </div>
+          </Link>
         </div>
 
         <div className="buyer-tabs">
-          <button type="button" className="buyer-tab buyer-tab-active">Overview</button>
-          <button type="button" className="buyer-tab buyer-tab-outline">
+          <button
+            type="button"
+            className={"buyer-tab " + (activeTab === TAB_OVERVIEW ? "buyer-tab-active" : "buyer-tab-outline")}
+            onClick={() => setActiveTab(TAB_OVERVIEW)}
+          >
+            Overview
+          </button>
+          <button
+            type="button"
+            className={"buyer-tab " + (activeTab === TAB_PICKUP_ROUTE ? "buyer-tab-active" : "buyer-tab-outline")}
+            onClick={() => setActiveTab(TAB_PICKUP_ROUTE)}
+          >
             <IconPlus /> Create Pickup Route
           </button>
         </div>
 
+        {activeTab === TAB_OVERVIEW && (
+        <>
         <h3 className="buyer-section-title">Quick Actions</h3>
         <div className="buyer-quick-actions">
           <Link to="/marketplace" className="buyer-quick-card">
@@ -223,23 +259,31 @@ export default function BuyerDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {PENDING_PICKUPS.map((row, i) => (
-                    <tr key={i}>
-                      <td>{row.material}</td>
-                      <td>{row.quantity}</td>
-                      <td>
-                        <span className="buyer-table-seller">{row.seller}</span>
-                        <Stars value={row.rating} />
+                  {filteredPickups.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="buyer-table-empty">
+                        {searchQuery.trim() ? "No pending pickups match your search." : "No pending pickups."}
                       </td>
-                      <td>{row.location}</td>
                     </tr>
-                  ))}
+                  ) : (
+                    filteredPickups.map((row, i) => (
+                      <tr key={i}>
+                        <td>{row.material}</td>
+                        <td>{row.quantity}</td>
+                        <td>
+                          <span className="buyer-table-seller">{row.seller}</span>
+                          <Stars value={row.rating} />
+                        </td>
+                        <td>{row.location}</td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
           </div>
           <div className="buyer-right-col">
-            <div className="buyer-pulse-card">
+            <div id="sustainability" className="buyer-pulse-card">
               <h4 className="buyer-pulse-title"><IconLeaf /> Sustainability Pulse</h4>
               <div className="buyer-pulse-value">850 <span className="buyer-pulse-unit">kg</span></div>
               <div className="buyer-pulse-label">SAVED THIS MONTH</div>
@@ -281,21 +325,27 @@ export default function BuyerDashboard() {
           <h3 className="buyer-section-title">Recommended for You</h3>
           <p className="buyer-section-desc">Based on your purchase history and preferences.</p>
           <div className="buyer-recommended-grid">
-            {RECOMMENDED.map((item, i) => (
-              <Link key={i} to="/marketplace" className="buyer-rec-card">
-                <div className="buyer-rec-image-wrap">
-                  <img src={item.img} alt="" />
-                  <span className="buyer-rec-tag">{item.tag}</span>
-                </div>
-                <div className="buyer-rec-body">
-                  <h4 className="buyer-rec-title">{item.title}</h4>
-                  <div className="buyer-rec-qty-price">{item.qty} · {item.price}</div>
-                  <div className="buyer-rec-seller">{item.seller} <Stars value={item.rating} /></div>
-                  <div className="buyer-rec-location">{item.location}</div>
-                  <div className="buyer-rec-co2">{item.co2}</div>
-                </div>
-              </Link>
-            ))}
+            {filteredRecommended.length === 0 ? (
+              <p className="buyer-rec-empty">
+                {searchQuery.trim() ? "No recommended items match your search." : "No recommendations yet."}
+              </p>
+            ) : (
+              filteredRecommended.map((item, i) => (
+                <Link key={i} to="/marketplace" className="buyer-rec-card">
+                  <div className="buyer-rec-image-wrap">
+                    <img src={item.img} alt="" />
+                    <span className="buyer-rec-tag">{item.tag}</span>
+                  </div>
+                  <div className="buyer-rec-body">
+                    <h4 className="buyer-rec-title">{item.title}</h4>
+                    <div className="buyer-rec-qty-price">{item.qty} · {item.price}</div>
+                    <div className="buyer-rec-seller">{item.seller} <Stars value={item.rating} /></div>
+                    <div className="buyer-rec-location">{item.location}</div>
+                    <div className="buyer-rec-co2">{item.co2}</div>
+                  </div>
+                </Link>
+              ))
+            )}
           </div>
         </div>
 
@@ -335,10 +385,15 @@ export default function BuyerDashboard() {
               </div>
             </div>
           </div>
-          <div className="buyer-chart-card">
+            <div className="buyer-chart-card">
             <h4 className="buyer-chart-title">Price Comparison: Recycled vs Virgin Materials</h4>
             <div className="buyer-comparison">
-              {COMPARISON_MATERIALS.map((m, i) => (
+              {filteredComparison.length === 0 ? (
+                <p className="buyer-comparison-empty">
+                  {searchQuery.trim() ? "No materials match your search." : "No comparison data."}
+                </p>
+              ) : (
+                filteredComparison.map((m, i) => (
                 <div key={i} className="buyer-comparison-row">
                   <span className="buyer-comparison-name">{m.name}</span>
                   <div className="buyer-comparison-bars">
@@ -360,6 +415,18 @@ export default function BuyerDashboard() {
             </div>
           </div>
         </div>
+        </>
+        )}
+
+        {activeTab === TAB_PICKUP_ROUTE && (
+          <div className="buyer-tab-content buyer-pickup-route-placeholder">
+            <h3 className="buyer-section-title">Create Pickup Route</h3>
+            <p className="buyer-section-desc">Plan a route to collect materials from multiple sellers in one trip.</p>
+            <Link to="/buyer/pickup-routes" className="btn btn-primary buyer-pickup-route-btn">
+              <IconMapPin /> Open Pickup Routes
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );

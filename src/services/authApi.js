@@ -3,6 +3,8 @@
  * Base URL from VITE_SCAN_API_URL (same backend as scan).
  */
 
+import { getFriendlyMessage } from "../utils/errorMessages";
+
 function getApiBaseUrl() {
   return typeof import.meta !== "undefined" && import.meta.env?.VITE_SCAN_API_URL
     ? String(import.meta.env.VITE_SCAN_API_URL).replace(/\/$/, "")
@@ -43,10 +45,11 @@ export async function registerUser(payload) {
 
   if (!res.ok) {
     const details = Array.isArray(data.details) ? data.details : [];
-    const firstMessage = details[0]?.message || data.message || data.error || `Registration failed (${res.status})`;
-    const msg = data.error && details.length > 0 ? `${data.error}: ${details.map((d) => d.message).join("; ")}` : firstMessage;
+    const raw = details[0]?.message || data.message || data.error || "";
+    const msg = getFriendlyMessage(res.status, raw);
     const err = new Error(msg);
     err.details = details;
+    err.status = res.status;
     throw err;
   }
 
@@ -81,10 +84,11 @@ export async function loginUser(payload) {
 
   if (!res.ok) {
     const details = Array.isArray(data.details) ? data.details : [];
-    const firstMessage = details[0]?.message || data.message || data.error || `Login failed (${res.status})`;
-    const msg = data.error && details.length > 0 ? `${data.error}: ${details.map((d) => d.message).join("; ")}` : firstMessage;
+    const raw = details[0]?.message || data.message || data.error || "";
+    const msg = getFriendlyMessage(res.status, raw);
     const err = new Error(msg);
     err.details = details;
+    err.status = res.status;
     throw err;
   }
 

@@ -26,6 +26,9 @@ export default function AvatarMenu({ accountPath, variant = "seller-topbar", cla
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
+  const closeTimeoutRef = useRef(null);
+
+  const path = accountPath || "/seller/account";
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -39,7 +42,23 @@ export default function AvatarMenu({ accountPath, variant = "seller-topbar", cla
     }
   }, [open]);
 
-  const handleLogout = () => {
+  useEffect(() => {
+    return () => clearCloseTimeout();
+  }, []);
+
+  const clearCloseTimeout = () => {
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+  };
+
+  const handleMouseLeave = () => {
+    closeTimeoutRef.current = setTimeout(() => setOpen(false), 200);
+  };
+
+  const handleLogout = (e) => {
+    e.preventDefault();
     clearAuthSession();
     setOpen(false);
     navigate("/login", { replace: true });
@@ -49,7 +68,8 @@ export default function AvatarMenu({ accountPath, variant = "seller-topbar", cla
     <div
       className={`avatar-menu ${className}`.trim()}
       ref={containerRef}
-      onMouseEnter={() => setOpen(true)}
+      onMouseEnter={() => { clearCloseTimeout(); setOpen(true); }}
+      onMouseLeave={handleMouseLeave}
     >
       <button
         type="button"
@@ -62,9 +82,14 @@ export default function AvatarMenu({ accountPath, variant = "seller-topbar", cla
         <Avatar variant={variant} />
       </button>
       {open && (
-        <div className="avatar-menu-dropdown" role="menu">
+        <div
+          className="avatar-menu-dropdown"
+          role="menu"
+          onMouseEnter={clearCloseTimeout}
+          onMouseLeave={handleMouseLeave}
+        >
           <Link
-            to={accountPath}
+            to={path}
             className="avatar-menu-item"
             role="menuitem"
             onClick={() => setOpen(false)}

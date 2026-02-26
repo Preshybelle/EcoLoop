@@ -4,6 +4,8 @@
  */
 
 import { getAuthToken } from "../utils/auth";
+import { getFriendlyMessage } from "../utils/errorMessages";
+import { LISTING_UPDATED } from "../utils/successMessages";
 
 function getApiBaseUrl() {
   return typeof import.meta !== "undefined" && import.meta.env?.VITE_SCAN_API_URL
@@ -42,9 +44,11 @@ export async function getListings() {
 
   if (!res.ok) {
     const details = Array.isArray(data.details) ? data.details : [];
-    const msg = data.message || data.error || (details[0]?.message) || `Failed to load listings (${res.status})`;
+    const raw = data.message || data.error || (details[0]?.message) || "";
+    const msg = getFriendlyMessage(res.status, raw);
     const err = new Error(msg);
     err.details = details;
+    err.status = res.status;
     throw err;
   }
 
@@ -81,9 +85,8 @@ export async function getListingById(id) {
 
   if (!res.ok) {
     const details = Array.isArray(data.details) ? data.details : [];
-    const msg = res.status === 404
-      ? (data.message || data.error || "Listing not found")
-      : (data.message || data.error || (details[0]?.message) || `Failed to load listing (${res.status})`);
+    const raw = data.message || data.error || (details[0]?.message) || "";
+    const msg = getFriendlyMessage(res.status, raw, "listing");
     const err = new Error(msg);
     err.details = details;
     err.status = res.status;
@@ -137,7 +140,7 @@ export async function updateListingStatus(id, status) {
   }
 
   return {
-    message: data.message || "Listing status updated successfully",
+    message: data.message || LISTING_UPDATED,
     listing: data.listing ?? data,
   };
 }

@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import ecoLoopLogo from "../assets/brand/ecoloop-logo.png";
+import { LISTING_PUBLISHED } from "../utils/successMessages";
 import AvatarMenu from "../components/AvatarMenu";
 
 const IconGrid = () => (
@@ -120,7 +121,7 @@ export default function ListingPublished() {
             <p className="confirmation-received">SUBMISSION RECEIVED</p>
             <h1 className="confirmation-title">Listing Published Successfully!</h1>
             <p className="confirmation-desc">
-              Your listing is now live and visible to buyers. You can track views and offers from your dashboard.
+              {LISTING_PUBLISHED}
             </p>
             <div className="confirmation-id-tag">Listing ID: #{listingId}</div>
             {allowNegotiation && (

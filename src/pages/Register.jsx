@@ -3,6 +3,9 @@ import { Link, useNavigate } from "react-router-dom";
 import ecoLoopLogo from "../assets/brand/ecoloop-logo.png";
 import { registerUser } from "../services/authApi";
 import { setAuthSession } from "../utils/auth";
+import { getFriendlyMessage } from "../utils/errorMessages";
+import { useToast } from "../contexts/ToastContext";
+import { REGISTER_SUCCESS } from "../utils/successMessages";
 
 const IconPerson = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -54,17 +57,15 @@ function getUserFriendlyMessage(rawMessage, field) {
   if (field === "confirmPassword") return "Passwords do not match. Please confirm your password.";
   if (field === "role" || msg.includes("role")) return "Please select whether you are a Buyer or Seller/Producer.";
   if (msg.includes("terms")) return "You must agree to the Terms and Conditions.";
-  // Generic API/status mappings
-  if (msg.includes("network") || msg.includes("fetch")) return "Unable to connect. Please check your internet connection and try again.";
+  // Generic API/status mappings (use shared friendly messages)
   if (msg.includes("409") || msg.includes("conflict")) return "This email is already registered. Please sign in or use a different email.";
-  if (msg.includes("400") || msg.includes("bad request")) return "Please check your details and try again.";
-  if (msg.includes("500") || msg.includes("server")) return "Something went wrong on our end. Please try again in a moment.";
-  if (msg.includes("403") || msg.includes("forbidden")) return "Registration is not allowed. Please contact support if this continues.";
-  return "Something went wrong. Please check your details and try again.";
+  if (msg.includes("403") || msg.includes("forbidden")) return "Registration isn't available right now. If this keeps happening, please contact support.";
+  return getFriendlyMessage(null, rawMessage);
 }
 
 function Register() {
   const navigate = useNavigate();
+  const showToast = useToast();
   const [userType, setUserType] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -109,16 +110,14 @@ function Register() {
         email: email.trim(),
         password,
         confirmPassword,
-        userType: type,
+        role: type,
         username: username || email.trim().toLowerCase().split("@")[0],
         termsAccepted: agreeTerms,
       });
       setAuthSession(data.token, data.user);
-      if (type === "buyer") {
-        navigate("/buyer/dashboard");
-      } else {
-        navigate("/seller/dashboard");
-      }
+      showToast(REGISTER_SUCCESS);
+      const path = type === "buyer" ? "/buyer/dashboard" : "/seller/dashboard";
+      setTimeout(() => navigate(path), 800);
     } catch (err) {
       const rawMessage = err instanceof Error ? err.message : "Registration failed.";
       setApiError(getUserFriendlyMessage(rawMessage));

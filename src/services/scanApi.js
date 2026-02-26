@@ -12,6 +12,8 @@
  *   }
  */
 
+import { getFriendlyMessage } from "../utils/errorMessages";
+
 const getScanApiBaseUrl = () => {
   return typeof import.meta !== "undefined" && import.meta.env?.VITE_SCAN_API_URL
     ? import.meta.env.VITE_SCAN_API_URL.replace(/\/$/, "")
@@ -45,7 +47,8 @@ export async function scanMaterialImage(imageDataUrl) {
 
       if (!res.ok) {
         const text = await res.text();
-        lastError = new Error(res.status === 422 || res.status === 400 ? text || "Invalid image" : text || `Scan failed (${res.status})`);
+        const raw = text || (res.status === 422 || res.status === 400 ? "Invalid image" : "");
+        lastError = new Error(getFriendlyMessage(res.status, raw));
         continue;
       }
 

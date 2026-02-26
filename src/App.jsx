@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ToastProvider } from "./contexts/ToastContext";
 
 import LandingPage from "./pages/LandingPage";
+import About from "./pages/About";
 import Terms from "./pages/Terms";
 import Register from "./pages/Register";
 import Login from "./pages/Login";
@@ -16,6 +17,7 @@ import Inventory from "./pages/Inventory";
 import Marketplace from "./pages/Marketplace";
 import AIRecognition from "./pages/AIRecognition";
 import BuyerDashboard from "./pages/BuyerDashboard";
+import BuyerOrders from "./pages/BuyerOrders";
 import Messages from "./pages/Messages";
 import AccountSettings from "./pages/AccountSettings";
 
@@ -25,7 +27,9 @@ function App() {
       <BrowserRouter>
         <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/about" element={<About />} />
         <Route path="/buyer/dashboard" element={<BuyerDashboard />} />
+        <Route path="/buyer/orders" element={<BuyerOrders />} />
         <Route path="/buyer/account" element={<AccountSettings />} />
         <Route path="/buyer/messages" element={<Messages />} />
         <Route path="/terms" element={<Terms />} />

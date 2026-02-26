@@ -3,6 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import ecoLoopLogo from "../assets/brand/ecoloop-logo.png";
 import { setAuthSession } from "../utils/auth";
 import { loginUser as loginUserApi } from "../services/authApi";
+import { useToast } from "../contexts/ToastContext";
+import { LOGIN_SUCCESS } from "../utils/successMessages";
 
 const IconEnvelope = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -31,6 +33,7 @@ const IconEyeOff = () => (
 
 function Login() {
   const navigate = useNavigate();
+  const showToast = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -54,14 +57,17 @@ function Login() {
         ? String(import.meta.env.VITE_SCAN_API_URL).replace(/\/$/, "")
         : "";
       if (!base) {
-        setError("Login is not configured. Set VITE_SCAN_API_URL in .env and use the backend.");
+        setError(
+          "Backend URL is not set. Create a .env file in the project root with VITE_SCAN_API_URL=https://your-api-url.com (see .env.example). Restart the dev server after changing .env."
+        );
         return;
       }
       const data = await loginUserApi({ email: emailTrim, password: pass });
       if (data.token) setAuthSession(data.token, data.user);
+      showToast(LOGIN_SUCCESS);
       const role = data.user?.role === "buyer" ? "buyer" : "seller";
-      if (role === "buyer") navigate("/buyer/dashboard");
-      else navigate("/seller/dashboard");
+      const path = role === "buyer" ? "/buyer/dashboard" : "/seller/dashboard";
+      setTimeout(() => navigate(path), 600);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Login failed. Please try again.";
       setError(message);

@@ -68,6 +68,10 @@ function ContactSection() {
                 <input type="text" name="name" placeholder="Full Name" />
               </label>
               <label className="contact-label">
+                My Email is
+                <input type="email" name="email" placeholder="your@email.com" />
+              </label>
+              <label className="contact-label">
                 I'm looking for
                 <input type="text" name="looking" placeholder="What you love" />
               </label>

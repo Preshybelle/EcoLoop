@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import ecoLoopLogo from "../assets/brand/ecoloop-logo.png";
 import AvatarMenu from "../components/AvatarMenu";
 import imgHDPE from "../assets/services/hdpe.png";
 import { useToast } from "../contexts/ToastContext";
 import { sendContactMessage } from "../utils/contactMessages";
+import { getListings } from "../services/listingsApi";
 
 function getFullNameAndInitials() {
   const fullName = typeof window !== "undefined" ? (localStorage.getItem("ecoloop_fullName") || "User") : "User";
@@ -67,16 +68,67 @@ function StarRating({ value }) {
   );
 }
 
+const CO2_KG_PER_TON = 500;
+
+function apiListingToMarketplaceCard(listing, defaultImg) {
+  const id = listing.id;
+  const title = listing.title || listing.name || "Listing";
+  const materialType = String(listing.materialType || "").toLowerCase();
+  let category = "plastics";
+  if (materialType.includes("metal") || materialType.includes("aluminum") || materialType.includes("steel")) category = "metals";
+  else if (materialType.includes("paper") || materialType.includes("cardboard")) category = "paper";
+  const weightKg = listing.weight ?? listing.quantity ?? listing.totalWeight ?? 0;
+  const quantityTons = typeof weightKg === "number" ? weightKg / 1000 : (parseFloat(String(weightKg).replace(/[^0-9.]/g, "")) || 0) / 1000;
+  const quantityStr = quantityTons >= 1 ? `${quantityTons.toFixed(1)} Tons` : `${Math.round(quantityTons * 1000)} kg`;
+  const co2Kg = Math.round(quantityTons * CO2_KG_PER_TON);
+  const co2Str = co2Kg >= 1000 ? `${(co2Kg / 1000).toFixed(1)} Tons CO₂ saved` : `${co2Kg} kg CO₂ saved`;
+  const priceNum = Number(listing.price) ?? 0;
+  const priceStr = priceNum >= 1000 ? `₦${(priceNum / 1000).toFixed(0)}K` : `₦${priceNum}`;
+  const seller = listing.sellerName || (typeof window !== "undefined" ? (localStorage.getItem("ecoloop_fullName") || "Seller") : "Seller");
+  const location = listing.location ?? listing.state ?? "—";
+  const listed = listing.createdAt || listing.listedAt || listing.listed;
+  const listedStr = listed ? (() => {
+    const d = new Date(listed);
+    const now = new Date();
+    const diffMs = now - d;
+    const days = Math.floor(diffMs / 86400000);
+    if (days >= 1) return `${days} day${days !== 1 ? "s" : ""} ago`;
+    const hours = Math.floor(diffMs / 3600000);
+    if (hours >= 1) return `${hours} hour${hours !== 1 ? "s" : ""} ago`;
+    const mins = Math.floor(diffMs / 60000);
+    return mins < 1 ? "Just now" : `${mins} min${mins !== 1 ? "s" : ""} ago`;
+  })() : "—";
+  const grade = listing.grade || (materialType ? "Grade A" : "—");
+  const condition = listing.condition || listing.state ? "Good" : "—";
+  return {
+    id,
+    category,
+    title,
+    img: listing.imageUrl || listing.image || defaultImg,
+    price: priceStr,
+    co2: co2Str,
+    quantity: quantityStr,
+    grade,
+    condition,
+    seller,
+    rating: listing.rating ?? 5.0,
+    location,
+    distance: listing.distance ?? "—",
+    listed: listedStr,
+  };
+}
+
 const FILTERS = [
   { id: "all", label: "All Materials" },
   { id: "plastics", label: "Plastics" },
-  { id: "metals", label: "Metals", active: true },
+  { id: "metals", label: "Metals" },
   { id: "paper", label: "Paper & Cardboard" },
 ];
 
 const LISTINGS = [
   {
     id: 1,
+    category: "plastics",
     title: "Industrial Polyethylene (HDPE)",
     img: imgHDPE,
     price: "₦36,000",
@@ -92,6 +144,7 @@ const LISTINGS = [
   },
   {
     id: 2,
+    category: "metals",
     title: "Scrap Aluminum Mix",
     img: IMG("aluminum.png"),
     price: "₦17,500",
@@ -107,6 +160,7 @@ const LISTINGS = [
   },
   {
     id: 3,
+    category: "paper",
     title: "Recycled Cardboard Bales",
     img: IMG("cardboard-bales.png"),
     price: "₦48,000",
@@ -122,6 +176,7 @@ const LISTINGS = [
   },
   {
     id: 4,
+    category: "plastics",
     title: "PET Plastic Bottles",
     img: IMG("pet-bottles.png"),
     price: "₦24,000",
@@ -143,6 +198,45 @@ export default function Marketplace() {
   const [contactModal, setContactModal] = useState(null);
   const [contactMessage, setContactMessage] = useState("");
   const [sending, setSending] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilterId, setActiveFilterId] = useState("all");
+  const [apiListings, setApiListings] = useState([]);
+  const [listingsLoading, setListingsLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const token = typeof window !== "undefined" && window.localStorage && window.localStorage.getItem("ecoloop_token");
+    if (!token) {
+      setApiListings([]);
+      return;
+    }
+    setListingsLoading(true);
+    getListings()
+      .then((res) => {
+        if (cancelled) return;
+        const list = (res.listings || []).filter((l) => (l.status || "ACTIVE").toUpperCase() === "ACTIVE");
+        setApiListings(list.map((l) => apiListingToMarketplaceCard(l, imgHDPE)));
+      })
+      .catch(() => {
+        if (!cancelled) setApiListings([]);
+      })
+      .finally(() => { if (!cancelled) setListingsLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const allListings = apiListings.length > 0 ? [...apiListings, ...LISTINGS] : LISTINGS;
+  const filteredListings = allListings.filter((item) => {
+    const matchCategory = activeFilterId === "all" || (item.category && item.category === activeFilterId);
+    if (!matchCategory) return false;
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      (item.title && item.title.toLowerCase().includes(q)) ||
+      (item.seller && item.seller.toLowerCase().includes(q)) ||
+      (item.grade && item.grade.toLowerCase().includes(q)) ||
+      (item.condition && item.condition.toLowerCase().includes(q))
+    );
+  });
 
   const openContact = (item) => {
     setContactModal(item);
@@ -226,30 +320,44 @@ export default function Marketplace() {
           <div className="marketplace-search-row">
             <div className="marketplace-search-wrap">
               <IconSearch />
-              <input type="search" placeholder="Search by material type or seller name..." className="marketplace-search-input" aria-label="Search" />
+              <input
+                type="search"
+                placeholder="Search by material type or seller name..."
+                className="marketplace-search-input"
+                aria-label="Search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
             <div className="marketplace-filters">
               {FILTERS.map((f) => (
-                <button key={f.id} type="button" className={"marketplace-filter-pill " + (f.active ? "marketplace-filter-pill-active" : "")}>
+                <button
+                  key={f.id}
+                  type="button"
+                  className={"marketplace-filter-pill " + (activeFilterId === f.id ? "marketplace-filter-pill-active" : "")}
+                  onClick={() => setActiveFilterId(f.id)}
+                >
                   {f.label}
                 </button>
               ))}
             </div>
           </div>
 
-          <p className="marketplace-count">Showing 6 listings</p>
+          <p className="marketplace-count">Showing {filteredListings.length} listing{filteredListings.length !== 1 ? "s" : ""}</p>
 
           <div className="marketplace-grid">
-            {LISTINGS.map((item) => (
+            {filteredListings.map((item) => (
               <article key={item.id} className="marketplace-card">
                 <div className="marketplace-card-image-wrap">
                   <img src={item.img} alt="" className="marketplace-card-image" />
                   <span className="marketplace-card-price">{item.price}</span>
-                  <span className="marketplace-card-co2">{item.co2}</span>
+                  <div className="marketplace-card-bottom-left">
+                    <span className="marketplace-card-quantity">{item.quantity}</span>
+                    <span className="marketplace-card-co2">{item.co2}</span>
+                  </div>
                 </div>
                 <div className="marketplace-card-body">
                   <h2 className="marketplace-card-title">{item.title}</h2>
-                  <p className="marketplace-card-quantity">{item.quantity}</p>
                   <ul className="marketplace-card-details">
                     <li>Grade: {item.grade}</li>
                     <li>Condition: {item.condition}</li>

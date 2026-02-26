@@ -20,7 +20,7 @@ function Navbar() {
       </Link>
       <nav className="navbar-links">
         <Link to="/" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>Home</Link>
-        <a href="#about">About</a>
+        <Link to="/about">About</Link>
         {isLoggedIn ? (
           <Link to="/marketplace">Marketplace</Link>
         ) : (

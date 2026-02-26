@@ -5,6 +5,8 @@
  */
 
 import { getAuthToken } from "../utils/auth";
+import { getFriendlyMessage } from "../utils/errorMessages";
+import { TRANSACTION_SUCCESS } from "../utils/successMessages";
 
 function getApiBaseUrl() {
   return typeof import.meta !== "undefined" && import.meta.env?.VITE_SCAN_API_URL
@@ -86,9 +88,8 @@ export async function getTransactionById(id) {
 
   if (!res.ok) {
     const details = Array.isArray(data.details) ? data.details : [];
-    const msg = res.status === 404
-      ? (data.error || data.message || "Transaction not found")
-      : (data.error || data.message || (details[0]?.message) || `Failed to load transaction (${res.status})`);
+    const raw = data.error || data.message || (details[0]?.message) || "";
+    const msg = getFriendlyMessage(res.status, raw);
     const err = new Error(msg);
     err.details = details;
     err.status = res.status;
@@ -141,7 +142,7 @@ export async function updateTransactionStatus(id, status) {
   }
 
   return {
-    message: data.message || "Transaction status updated successfully",
+    message: data.message || TRANSACTION_SUCCESS,
     transaction: data.transaction ?? data,
   };
 }
@@ -187,7 +188,7 @@ export async function createTransaction(payload) {
   }
 
   return {
-    message: data.message || "Transaction created successfully",
+    message: data.message || TRANSACTION_SUCCESS,
     transaction: data.transaction ?? data,
   };
 }
